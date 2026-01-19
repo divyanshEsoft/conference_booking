@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import getdate, nowdate, get_time
+from frappe.utils import getdate, nowdate, get_time, get_datetime
 
 
 class ConferenceBooking(Document):
@@ -11,10 +11,18 @@ class ConferenceBooking(Document):
     def validate(self):
 
         self.set_defaults()
+        self.set_calendar_datetimes()
         self.validate_management_reserved_room()
         self.validate_booking_time()
         self.validate_overlapping_booking()
 
+
+    def set_calendar_datetimes(self):
+        if self.booking_date and self.start_time:
+            self.starts_on = get_datetime(f"{self.booking_date} {self.start_time}")
+
+        if self.booking_date and self.end_time:
+            self.ends_on = get_datetime(f"{self.booking_date} {self.end_time}")
 
 # ----------------------------------------------------
 # DEFAULT VALUES (Future-proofing)
