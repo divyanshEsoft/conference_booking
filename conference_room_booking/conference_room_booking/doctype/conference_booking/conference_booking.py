@@ -37,7 +37,7 @@ class ConferenceBooking(Document):
 
         room = frappe.get_doc("Conference Room", self.conference_room)
 
-        if room.is_active:
+        if not room.is_active:
             frappe.throw("This conference room is inactive and cannot be booked.")
 
         if not room.reserved_for_management:
@@ -91,31 +91,81 @@ class ConferenceBooking(Document):
 # Overlapping Booking Validation
 # ----------------------------------------------------
 
+
     def validate_overlapping_booking(self):
 
-        # If required fields missing → skip
         if not self.conference_room or not self.booking_date:
             return
 
-        # Skip validation for cancelled bookings
-        if self.status == "Cancelled":
+        # Skip cancelled & draft bookings
+        if self.status in ["Cancelled", "Draft"]:
             return
-        
 
-        overlapping_booking = frappe.db.exists(
-            "Conference Booking",
-            {
-                "conference_room": self.conference_room,
-                "booking_date": self.booking_date,
-                "status": ["in", ["Confirmed", "Reserved"]],
-                "name": ["!=", self.name],
-                "start_time": ["<", self.end_time],
-                "end_time": [">", self.start_time],
-            }
+        room = frappe.get_doc("Conference Room", self.conference_room)
+        buffer_minutes = room.buffer_minutes or 0
+
+        def time_to_minutes(t):
+            t = get_time(t)
+            return t.hour * 60 + t.minute
+
+        start_minutes = time_to_minutes(self.start_time) - buffer_minutes
+        end_minutes = time_to_minutes(self.end_time) + buffer_minutes
+
+        overlapping_booking = frappe.db.sql(
+            """
+            SELECT name
+            FROM `tabConference Booking`
+            WHERE
+                conference_room = %s
+                AND booking_date = %s
+                AND status IN ('Confirmed', 'Reserved')
+                AND name != %s
+                AND (
+                    (TIME_TO_SEC(start_time) / 60) < %s
+                    AND (TIME_TO_SEC(end_time) / 60) > %s
+                )
+            """,
+            (
+                self.conference_room,
+                self.booking_date,
+                self.name,
+                end_minutes,
+                start_minutes,
+            ),
         )
 
         if overlapping_booking:
-            frappe.throw("Room already booked for the selected time slot.")
+            frappe.throw(
+                "Room already booked or buffer time conflict exists for the selected slot."
+            )
+
+
+
+    # def validate_overlapping_booking(self):
+
+    #     # If required fields missing → skip
+    #     if not self.conference_room or not self.booking_date:
+    #         return
+
+    #     # Skip cancelled & draft bookings
+    #     if self.status in ["Cancelled", "Draft"]:
+    #         return
+        
+
+    #     overlapping_booking = frappe.db.exists(
+    #         "Conference Booking",
+    #         {
+    #             "conference_room": self.conference_room,
+    #             "booking_date": self.booking_date,
+    #             "status": ["in", ["Confirmed", "Reserved"]],
+    #             "name": ["!=", self.name],
+    #             "start_time": ["<", self.end_time],
+    #             "end_time": [">", self.start_time],
+    #         }
+    #     )
+
+    #     if overlapping_booking:
+    #         frappe.throw("Room already booked for the selected time slot.")
 
 
 
