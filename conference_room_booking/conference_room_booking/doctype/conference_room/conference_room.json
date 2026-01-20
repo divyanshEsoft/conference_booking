@@ -11,8 +11,9 @@
   "capacity",
   "reserved_for_management",
   "column_break_nzkk",
-  "remarks",
-  "is_active"
+  "buffer_minutes",
+  "is_active",
+  "remarks"
  ],
  "fields": [
   {
@@ -53,12 +54,18 @@
    "fieldname": "is_active",
    "fieldtype": "Check",
    "label": "Is Active"
+  },
+  {
+   "default": "15",
+   "fieldname": "buffer_minutes",
+   "fieldtype": "Int",
+   "label": "Buffer Time (Minutes)"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-19 12:36:08.938345",
+ "modified": "2026-01-19 16:14:06.301052",
  "modified_by": "Administrator",
  "module": "Conference Room Booking",
  "name": "Conference Room",
