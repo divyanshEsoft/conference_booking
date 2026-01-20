@@ -1,0 +1,23 @@
+{
+ "cards": [
+  {}
+ ],
+ "charts": [
+  {
+   "chart": "Room Availability Chart",
+   "width": "Half"
+  }
+ ],
+ "creation": "2026-01-20 11:17:36.866788",
+ "dashboard_name": "Conference Room Dashboard",
+ "docstatus": 0,
+ "doctype": "Dashboard",
+ "idx": 0,
+ "is_default": 0,
+ "is_standard": 1,
+ "modified": "2026-01-20 12:28:45.455586",
+ "modified_by": "Administrator",
+ "module": "Conference Room Booking",
+ "name": "Conference Room Dashboard",
+ "owner": "Administrator"
+}
