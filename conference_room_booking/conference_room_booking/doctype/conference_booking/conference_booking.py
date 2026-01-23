@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import getdate, nowdate, get_time, get_datetime
+from frappe.utils import getdate, nowdate, get_time, get_datetime , now_datetime
 
 
 class ConferenceBooking(Document):
@@ -13,8 +13,12 @@ class ConferenceBooking(Document):
         self.set_defaults()
         self.set_calendar_datetimes()
         self.validate_management_reserved_room()
+        # Projector validataion can be added here in future
+        self.validate_projector_requirements()
         self.validate_booking_time()
         self.validate_overlapping_booking()
+
+
 
 
     def set_calendar_datetimes(self):
@@ -86,6 +90,11 @@ class ConferenceBooking(Document):
         #  End time must be after start time
         if end_time <= start_time:
             frappe.throw("End Time must be after Start Time.")
+
+
+        if self.booking_date == nowdate():
+            if get_time(self.start_time) <= get_time(now_datetime().time()):
+                frappe.throw("Start Time must be in the future for today's bookings.")    
 
         # #  Optional: Office hours restriction (future ready)
         # office_start = get_time("09:00:00")
@@ -170,6 +179,15 @@ class ConferenceBooking(Document):
 
 
 
+    # ------------------------------------------------
+    #  SAFETY CLAMP (VERY IMPORTANT)
+    # ------------------------------------------------
+        start_minutes = max(start_minutes, 0)
+        end_minutes = min(end_minutes, 24 * 60)
+
+    # ------------------------------------------------
+    # DATABASE OVERLAP CHECK
+    # ------------------------------------------------
 
         overlapping_booking = frappe.db.sql(
             """
@@ -200,6 +218,73 @@ class ConferenceBooking(Document):
             )
 
 
+
+# ----------------------------------------------------
+# Projector Requirement Validation
+# ----------------------------------------------------
+    def validate_projector_requirements(self):
+        if not self.conference_room:
+            return
+        
+        if not self.projector_required:
+            return
+        
+        room = frappe.get_doc("Conference Room", self.conference_room)
+        if not room.has_projector and self.projector_required:
+            frappe.throw("Projector is required for this meeting, but the selected "
+            "conference room does not have a projector.")
+
+
+# ----------------------------------------------------
+# Projector Requirement Validation
+# ----------------------------------------------------
+
+
+# @frappe.whitelist()
+# def get_room_availability(booking_date, start_time, end_time, booking_name=None):
+#     """
+#     INTERNAL USE (Web UI)
+#     Returns availability for booking form
+#     """
+
+#     rooms = frappe.get_all(
+#         "Conference Room",
+#         filters={"is_active": 1},
+#         fields=["name", "buffer_minutes"]
+#     )
+
+#     def to_minutes(t):
+#         t = get_time(t)
+#         return t.hour * 60 + t.minute
+
+#     req_start = to_minutes(start_time)
+#     req_end = to_minutes(end_time)
+
+#     result = []
+
+#     for room in rooms:
+#         buffer = room.buffer_minutes or 0
+#         start_min = max(req_start - buffer, 0)
+#         end_min = min(req_end + buffer, 24 * 60)
+
+#         conflict = frappe.db.exists(
+#             "Conference Booking",
+#             {
+#                 "conference_room": room.name,
+#                 "booking_date": booking_date,
+#                 "status": ["in", ["Confirmed", "Reserved"]],
+#                 "name": ["!=", booking_name],
+#                 "start_time": ["<", end_time],
+#                 "end_time": [">", start_time],
+#             }
+#         )
+
+#         result.append({
+#             "room": room.name,
+#             "status": "Busy" if conflict else "Available"
+#         })
+
+#     return result
 
 
     # def validate_overlapping_booking(self):

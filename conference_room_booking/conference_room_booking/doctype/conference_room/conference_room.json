@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "field:room_name",
+ "autoname": "format:{room_name}-{floor_area}",
  "creation": "2026-01-16 12:44:00.526785",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -9,6 +9,7 @@
   "room_name",
   "floor_area",
   "capacity",
+  "has_projector",
   "reserved_for_management",
   "column_break_nzkk",
   "buffer_minutes",
@@ -60,16 +61,22 @@
    "fieldname": "buffer_minutes",
    "fieldtype": "Int",
    "label": "Buffer Time (Minutes)"
+  },
+  {
+   "default": "0",
+   "fieldname": "has_projector",
+   "fieldtype": "Check",
+   "label": "Has Projector"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-01-19 16:14:06.301052",
+ "modified": "2026-01-23 15:01:51.248306",
  "modified_by": "Administrator",
  "module": "Conference Room Booking",
  "name": "Conference Room",
- "naming_rule": "By fieldname",
+ "naming_rule": "Expression",
  "owner": "Administrator",
  "permissions": [
   {

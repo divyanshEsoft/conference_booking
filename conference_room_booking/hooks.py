@@ -148,6 +148,14 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
+scheduler_events ={
+    "corn":{
+        "*/10 * * * *":[
+            "conference_room_booking.task.auto_mark_past_bookings_as_completed"
+        ]
+    }
+}
+
 # scheduler_events = {
 # 	"all": [
 # 		"conference_room_booking.tasks.all"

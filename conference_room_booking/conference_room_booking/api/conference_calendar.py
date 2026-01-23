@@ -45,4 +45,9 @@ def get_conference_events(start, end, filters=None):
     return events
 
 
+@frappe.whitelist()
+def get_conference_rooms():
+    return frappe.get_all(
+        ""
 
+    )

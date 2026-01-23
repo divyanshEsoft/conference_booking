@@ -1,7 +1,7 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "CONF-BOOK-.YYYY.-.#####",
+ "autoname": "CONF-BK-.YYYY.-.MM.-.###",
  "creation": "2026-01-16 12:56:51.900592",
  "doctype": "DocType",
  "engine": "InnoDB",
@@ -13,6 +13,7 @@
   "client_name",
   "meeting_type",
   "booked_by",
+  "projector_required",
   "full_day",
   "column_break_idkb",
   "start_time",
@@ -73,6 +74,7 @@
    "default": "0",
    "fieldname": "full_day",
    "fieldtype": "Check",
+   "hidden": 1,
    "in_list_view": 1,
    "label": "Full Day"
   },
@@ -83,12 +85,14 @@
   {
    "fieldname": "start_time",
    "fieldtype": "Time",
+   "in_list_view": 1,
    "label": "Start Time",
    "reqd": 1
   },
   {
    "fieldname": "end_time",
    "fieldtype": "Time",
+   "in_list_view": 1,
    "label": "End Time",
    "reqd": 1
   },
@@ -97,7 +101,7 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Draft\nConfirmed\nCancelled\nCompleted\nReserved",
+   "options": "Draft\nReserved\nConfirmed\nCompleted\nCancelled",
    "reqd": 1
   },
   {
@@ -111,13 +115,21 @@
    "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "Cancellation Reason"
+  },
+  {
+   "default": "0",
+   "description": "Check if projector is required for this meeting",
+   "fieldname": "projector_required",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Projector Required"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2026-01-19 17:56:08.300896",
+ "modified": "2026-01-23 18:41:59.280101",
  "modified_by": "Administrator",
  "module": "Conference Room Booking",
  "name": "Conference Booking",
