@@ -9,106 +9,138 @@
 
 
 
+
 // frappe.ui.form.on("Conference Booking", {
-//     booking_date: trigger_availability,
-//     start_time: trigger_availability,
-//     end_time: trigger_availability,
 //     refresh(frm) {
-//         remove_availability_panel(frm);
-//     }
-// });
+//         toggle_multiday_hint(frm);
+//     },
 
-// let availability_timer = null;
+//     booking_date(frm) {
+//         // Auto-set end date if empty
+//         if (!frm.doc.booking_end_date) {
+//             frm.set_value("booking_end_date", frm.doc.booking_date);
+//         }
+//         toggle_multiday_hint(frm);
+//     },
 
-// function trigger_availability(frm) {
-//     if (!frm.doc.booking_date || !frm.doc.start_time || !frm.doc.end_time) {
-//         return;
-//     }
+//     booking_end_date(frm) {
+//         // Prevent invalid date range
+//         if (
+//             frm.doc.booking_end_date &&
+//             frm.doc.booking_date &&
+//             frm.doc.booking_end_date < frm.doc.booking_date
+//         ) {
+//             frappe.msgprint({
+//                 title: "Invalid Date Range",
+//                 message: "Booking End Date cannot be before Start Date.",
+//                 indicator: "red",
+//             });
+//             frm.set_value("booking_end_date", frm.doc.booking_date);
+//             return;
+//         }
 
-//     clearTimeout(availability_timer);
+//         toggle_multiday_hint(frm);
+//     },
+// });set_headline_alert
 
-//     availability_timer = setTimeout(() => {
-//         frappe.call({
-//             method: "conference_room_booking.conference_room_booking.doctype.conference_booking.conference_booking.get_room_availability",
-//             args: {
-//                 booking_date: frm.doc.booking_date,
-//                 start_time: frm.doc.start_time,
-//                 end_time: frm.doc.end_time,
-//                 booking_name: frm.doc.name
-//             },
-//             callback(r) {
-//                 if (!r.message) return;
-
-//                 render_availability_panel(frm, r.message);
-//                 filter_conference_room_field(frm, r.message);
-//             }
-//         });
-//     }, 300);
-// }
-
-// function remove_availability_panel(frm) {
-//     if (frm.availability_wrapper) {
-//         frm.availability_wrapper.remove();
-//         frm.availability_wrapper = null;
-//     }
-// }
-
-// function render_availability_panel(frm, data) {
-//     remove_availability_panel(frm);
-
-//     let html = `
-//         <div class="room-availability" style="margin-top:15px">
-//             <h5>🏢 Room Availability</h5>
-//             <table class="table table-bordered">
-//                 <thead>
-//                     <tr>
-//                         <th>Room</th>
-//                         <th>Status</th>
-//                         <th>Existing Bookings</th>
-//                     </tr>
-//                 </thead>
-//                 <tbody>
-//     `;
-
-//     data.forEach(row => {
-//         let color = row.status === "Available" ? "green" : "red";
-
-//         let details = row.conflicts?.length
-//             ? row.conflicts.map(
-//                 c => `${c.start_time} – ${c.end_time} (${c.meeting_title || "Meeting"})`
-//             ).join("<br>")
-//             : "—";
-
-//         html += `
-//             <tr>
-//                 <td>${row.room}</td>
-//                 <td style="color:${color}; font-weight:bold">${row.status}</td>
-//                 <td>${details}</td>
-//             </tr>
-//         `;
-//     });
-
-//     html += "</tbody></table></div>";
-
-//     frm.availability_wrapper = $(html);
-//     frm.fields_dict.conference_room.$wrapper.after(frm.availability_wrapper);
-// }
-
-// function filter_conference_room_field(frm, data) {
-//     let available_rooms = data
-//         .filter(r => r.status === "Available")
-//         .map(r => r.room);
-
-//     frm.set_query("conference_room", () => {
-//         return {
-//             filters: {
-//                 name: ["in", available_rooms]
-//             }
-//         };
-//     });
-
-//     if (frm.doc.conference_room &&
-//         !available_rooms.includes(frm.doc.conference_room)) {
-//         frm.set_value("conference_room", "");
+// function toggle_multiday_hint(frm) {
+//     if (
+//         frm.doc.booking_date &&
+//         frm.doc.booking_end_date &&
+//         frm.doc.booking_end_date > frm.doc.booking_date
+//     ) {
+//         frm.dashboard.set_headline_alert(
+//             __(
+//                 "This booking will reserve the room for <b>multiple days</b>."
+//             ),
+//             "blue"
+//         );
+//     } else {
+//         frm.dashboard.clear_headline_alert();
 //     }
 // }
+
+
+
+frappe.ui.form.on("Conference Booking", {
+    refresh(frm) {
+        // 🔒 Lock completed bookings
+        if (frm.doc.status === "Completed") {
+            frm.disable_form();
+            return;
+        }
+
+        toggle_multiday_hint(frm);
+        toggle_time_fields(frm);
+    },
+
+    booking_date(frm) {
+        // 📅 Auto-set end date if empty
+        if (!frm.doc.booking_end_date) {
+            frm.set_value("booking_end_date", frm.doc.booking_date);
+        }
+
+        toggle_multiday_hint(frm);
+    },
+
+    booking_end_date(frm) {
+        // ❌ Prevent invalid date range
+        if (
+            frm.doc.booking_end_date &&
+            frm.doc.booking_date &&
+            frm.doc.booking_end_date < frm.doc.booking_date
+        ) {
+            frappe.msgprint({
+                title: "Invalid Date Range",
+                message: "Booking End Date cannot be before Start Date.",
+                indicator: "red",
+            });
+
+            frm.set_value("booking_end_date", frm.doc.booking_date);
+            return;
+        }
+
+        toggle_multiday_hint(frm);
+    },
+
+    full_day(frm) {
+        toggle_time_fields(frm);
+
+        // ℹ️ Helpful hint for multi-day full-day bookings
+        if (
+            frm.doc.full_day &&
+            frm.doc.booking_end_date > frm.doc.booking_date
+        ) {
+            frappe.show_alert(
+                "This room will be booked for the <b>entire day</b> on all selected dates.",
+                5
+            );
+        }
+    },
+});
+
+// =====================================================
+// HELPERS
+// =====================================================
+
+function toggle_multiday_hint(frm) {
+    if (
+        frm.doc.booking_date &&
+        frm.doc.booking_end_date &&
+        frm.doc.booking_end_date > frm.doc.booking_date
+    ) {
+        frm.dashboard.set_headline_alert(
+            __("📅 This booking will reserve the room for <b>multiple days</b>."),
+            "blue"
+        );
+    } else {
+        frm.dashboard.clear_headline_alert();
+    }
+}
+
+function toggle_time_fields(frm) {
+    const hide_time = frm.doc.full_day === 1 || frm.doc.full_day === true;
+
+    frm.toggle_display("start_time", !hide_time);
+    frm.toggle_display("end_time", !hide_time);
+}

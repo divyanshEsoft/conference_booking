@@ -1,12 +1,13 @@
 {
  "actions": [],
  "allow_rename": 1,
- "autoname": "CONF-BK-.YYYY.-.MM.-.###",
+ "autoname": "CB-.YYYY.-.MM.-.###",
  "creation": "2026-01-16 12:56:51.900592",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
   "booking_date",
+  "booking_end_date",
   "conference_room",
   "meeting_title",
   "group_name",
@@ -27,7 +28,7 @@
    "fieldname": "booking_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Booking Date",
+   "label": "Booking Start Date",
    "reqd": 1
   },
   {
@@ -123,13 +124,19 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Projector Required"
+  },
+  {
+   "fieldname": "booking_end_date",
+   "fieldtype": "Date",
+   "label": "Booking End Date",
+   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2026-01-23 18:41:59.280101",
+ "modified": "2026-01-27 15:42:16.078432",
  "modified_by": "Administrator",
  "module": "Conference Room Booking",
  "name": "Conference Booking",

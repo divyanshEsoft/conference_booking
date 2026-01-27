@@ -1,5 +1,5 @@
 app_name = "conference_room_booking"
-app_title = "COnference Room Booking"
+app_title = "Conference Room Booking"
 app_publisher = "e.Soft Techonoligies"
 app_description = "Conference room booking and scheduling system"
 app_email = "divyansh@esoftech.com"
