@@ -161,7 +161,7 @@ csrf_exempt_methods = [
 # ---------------
 
 scheduler_events ={
-    "corn":{
+    "cron":{
         "*/10 * * * *":[
             "conference_room_booking.task.auto_mark_past_bookings_as_completed"
         ]

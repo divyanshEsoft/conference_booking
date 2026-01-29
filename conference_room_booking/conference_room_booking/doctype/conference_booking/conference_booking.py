@@ -87,44 +87,237 @@ class ConferenceBooking(Document):
     # =========================================================
     # DATE & TIME VALIDATION
     # =========================================================
+  
+    # def validate_booking_time(self):
+
+    #     """
+    #     Validates booking date & time.
+    #     - Prevents past bookings
+    #     - Supports multi-day bookings
+    #     - Handles full-day bookings cleanly
+    #     - Safe for web + mobile APIs
+    #     """
+
+    #     if getdate(self.booking_date) < getdate(nowdate()):
+    #         frappe.throw("You cannot book a conference room in the past.")
+
+    #     if self.booking_end_date and getdate(self.booking_end_date) < getdate(self.booking_date):
+    #         frappe.throw("Booking End Date cannot be before Start Date.")
+
+    #     # Full day booking
+    #     if self.full_day:
+    #         self.start_time = "00:00:00"
+    #         self.end_time = "23:59:59"
+    #         return
+
+    #     if not self.start_time or not self.end_time:
+    #         frappe.throw("Start Time and End Time are required.")
+
+    #     start_time = get_time(self.start_time)
+    #     end_time = get_time(self.end_time)
+
+    #     if end_time <= start_time:
+    #         frappe.throw("End Time must be after Start Time.")
+
+    #     if self.booking_date == nowdate():
+    #         if get_time(self.start_time) <= get_time(now_datetime().time()):
+    #             frappe.throw("Start Time must be in the future for today's bookings.")
+
+
     def validate_booking_time(self):
+        """
+        Validates booking date & time.
+        - Prevents past bookings
+        - Supports multi-day bookings
+        - Handles full-day bookings cleanly
+        - Safe for web + mobile APIs
+        """
+
+        # --------------------------------------------------
+        # BASIC DATE VALIDATION
+        # --------------------------------------------------
+        if not self.booking_date:
+            frappe.throw("Booking Start Date is required.")
 
         if getdate(self.booking_date) < getdate(nowdate()):
             frappe.throw("You cannot book a conference room in the past.")
 
-        if self.booking_end_date and getdate(self.booking_end_date) < getdate(self.booking_date):
-            frappe.throw("Booking End Date cannot be before Start Date.")
+        # --------------------------------------------------
+        # BOOKING END DATE (MULTI-DAY SAFE)
+        # --------------------------------------------------
+        if not self.booking_end_date:
+            # Auto-fix single day booking
+            self.booking_end_date = self.booking_date
 
-        # Full day booking
+        if getdate(self.booking_end_date) < getdate(self.booking_date):
+            frappe.throw("Booking End Date cannot be before Booking Start Date.")
+
+        # --------------------------------------------------
+        # FULL DAY BOOKING
+        # --------------------------------------------------
         if self.full_day:
             self.start_time = "00:00:00"
             self.end_time = "23:59:59"
             return
 
+        # --------------------------------------------------
+        # TIME MANDATORY
+        # --------------------------------------------------
         if not self.start_time or not self.end_time:
             frappe.throw("Start Time and End Time are required.")
 
         start_time = get_time(self.start_time)
         end_time = get_time(self.end_time)
 
+        # --------------------------------------------------
+        # TIME ORDER VALIDATION
+        # --------------------------------------------------
         if end_time <= start_time:
             frappe.throw("End Time must be after Start Time.")
 
-        if self.booking_date == nowdate():
-            if get_time(self.start_time) <= get_time(now_datetime().time()):
+        # --------------------------------------------------
+        # TODAY TIME VALIDATION (ONLY FOR SAME-DAY BOOKINGS)
+        # --------------------------------------------------
+        if (
+            getdate(self.booking_date) == getdate(nowdate())
+            and getdate(self.booking_end_date) == getdate(self.booking_date)
+        ):
+            current_time = get_time(now_datetime().time())
+
+            if start_time <= current_time:
                 frappe.throw("Start Time must be in the future for today's bookings.")
+
 
     # =========================================================
     # 🔶 UPDATED: MULTI-DAY OVERLAP VALIDATION
     # =========================================================
+   
+    # def validate_overlapping_booking(self):
+
+    #     if not self.conference_room or not self.booking_date:
+    #         return
+
+    #     if self.status in ["Cancelled", "Draft"]:
+    #         return
+
+    #     room = frappe.get_doc("Conference Room", self.conference_room)
+    #     buffer_minutes = room.buffer_minutes or 0
+
+    #     def time_to_minutes(t):
+    #         t = get_time(t)
+    #         return t.hour * 60 + t.minute
+
+    #     start_minutes = time_to_minutes(self.start_time) - buffer_minutes
+    #     end_minutes = time_to_minutes(self.end_time) + buffer_minutes
+
+    #     # 🔶 SAFETY CLAMP
+    #     start_minutes = max(start_minutes, 0)
+    #     end_minutes = min(end_minutes, 24 * 60)
+
+    #     # 🔶 LOOP THROUGH EACH DAY
+    #     for booking_day in self.get_booking_dates():
+
+    #         # -------------------------------------------------
+    #         # FULL DAY CONFLICT
+    #         # -------------------------------------------------
+    #         full_day_conflict = frappe.db.exists(
+    #             "Conference Booking",
+    #             {
+    #                 "conference_room": self.conference_room,
+    #                 "booking_date": booking_day,
+    #                 "status": ["in", ["Confirmed", "Reserved"]],
+    #                 "name": ["!=", self.name],
+    #                 "full_day": 1,
+    #             }
+    #         )
+
+    #         if full_day_conflict:
+    #             frappe.throw(
+    #                 f"Room already booked for full day on {booking_day}."
+    #             )
+
+    #         if self.full_day:
+    #             any_booking = frappe.db.exists(
+    #                 "Conference Booking",
+    #                 {
+    #                     "conference_room": self.conference_room,
+    #                     "booking_date": booking_day,
+    #                     "status": ["in", ["Confirmed", "Reserved"]],
+    #                     "name": ["!=", self.name],
+    #                 }
+    #             )
+
+    #             if any_booking:
+    #                 frappe.throw(
+    #                     f"Cannot book full day. Existing booking found on {booking_day}."
+    #                 )
+
+    #             continue  # Skip time overlap for full day
+
+    #         # -------------------------------------------------
+    #         # TIME OVERLAP CHECK
+    #         # -------------------------------------------------
+    #         overlapping_booking = frappe.db.sql(
+    #             """
+    #             SELECT name
+    #             FROM `tabConference Booking`
+    #             WHERE
+    #                 conference_room = %s
+    #                 AND booking_date = %s
+    #                 AND status IN ('Confirmed', 'Reserved')
+    #                 AND name != %s
+    #                 AND (
+    #                     (TIME_TO_SEC(start_time) / 60) < %s
+    #                     AND (TIME_TO_SEC(end_time) / 60) > %s
+    #                 )
+    #             """,
+    #             (
+    #                 self.conference_room,
+    #                 booking_day,
+    #                 self.name,
+    #                 end_minutes,
+    #                 start_minutes,
+    #             ),
+    #         )
+
+    #         if overlapping_booking:
+    #             frappe.throw(
+    #                 f"Room already booked or buffer conflict on {booking_day}."
+    #             )
+
+
     def validate_overlapping_booking(self):
+        """
+        Validates overlapping bookings.
+        - Status-aware (Draft → Reserved/Confirmed handled)
+        - Multi-day safe
+        - Full-day & partial-day rules enforced
+        - Buffer time respected
+        """
 
         if not self.conference_room or not self.booking_date:
             return
 
-        if self.status in ["Cancelled", "Draft"]:
+        # --------------------------------------------------
+        # STATUS AWARE CHECK
+        # --------------------------------------------------
+        active_statuses = ["Reserved", "Confirmed"]
+
+        # Detect status transition (Draft → Reserved/Confirmed)
+        previous = self.get_doc_before_save()
+        previous_status = previous.status if previous else None
+
+        should_validate = (
+            self.status in active_statuses or
+            previous_status in active_statuses
+        )
+
+        if not should_validate:
             return
 
+        # --------------------------------------------------
+        # ROOM + BUFFER
+        # --------------------------------------------------
         room = frappe.get_doc("Conference Room", self.conference_room)
         buffer_minutes = room.buffer_minutes or 0
 
@@ -132,42 +325,50 @@ class ConferenceBooking(Document):
             t = get_time(t)
             return t.hour * 60 + t.minute
 
+        # --------------------------------------------------
+        # TIME WINDOW (BUFFER APPLIED)
+        # --------------------------------------------------
         start_minutes = time_to_minutes(self.start_time) - buffer_minutes
         end_minutes = time_to_minutes(self.end_time) + buffer_minutes
 
-        # 🔶 SAFETY CLAMP
+        # Safety clamp
         start_minutes = max(start_minutes, 0)
         end_minutes = min(end_minutes, 24 * 60)
 
-        # 🔶 LOOP THROUGH EACH DAY
+        # --------------------------------------------------
+        # LOOP EACH BOOKING DAY (MULTI-DAY)
+        # --------------------------------------------------
         for booking_day in self.get_booking_dates():
 
-            # -------------------------------------------------
-            # FULL DAY CONFLICT
-            # -------------------------------------------------
-            full_day_conflict = frappe.db.exists(
+            # ----------------------------------------------
+            # EXISTING FULL-DAY BLOCKS EVERYTHING
+            # ----------------------------------------------
+            full_day_exists = frappe.db.exists(
                 "Conference Booking",
                 {
                     "conference_room": self.conference_room,
                     "booking_date": booking_day,
-                    "status": ["in", ["Confirmed", "Reserved"]],
-                    "name": ["!=", self.name],
+                    "status": ["in", active_statuses],
                     "full_day": 1,
+                    "name": ["!=", self.name],
                 }
             )
 
-            if full_day_conflict:
+            if full_day_exists:
                 frappe.throw(
-                    f"Room already booked for full day on {booking_day}."
+                    f"Conference room already booked for full day on {booking_day}."
                 )
 
+            # ----------------------------------------------
+            # IF CURRENT IS FULL DAY → NO OTHER BOOKINGS
+            # ----------------------------------------------
             if self.full_day:
                 any_booking = frappe.db.exists(
                     "Conference Booking",
                     {
                         "conference_room": self.conference_room,
                         "booking_date": booking_day,
-                        "status": ["in", ["Confirmed", "Reserved"]],
+                        "status": ["in", active_statuses],
                         "name": ["!=", self.name],
                     }
                 )
@@ -177,19 +378,19 @@ class ConferenceBooking(Document):
                         f"Cannot book full day. Existing booking found on {booking_day}."
                     )
 
-                continue  # Skip time overlap for full day
+                continue  # Skip time checks for full-day booking
 
-            # -------------------------------------------------
-            # TIME OVERLAP CHECK
-            # -------------------------------------------------
-            overlapping_booking = frappe.db.sql(
+            # ----------------------------------------------
+            # PARTIAL TIME OVERLAP CHECK
+            # ----------------------------------------------
+            overlap = frappe.db.sql(
                 """
                 SELECT name
                 FROM `tabConference Booking`
                 WHERE
                     conference_room = %s
                     AND booking_date = %s
-                    AND status IN ('Confirmed', 'Reserved')
+                    AND status IN ('Reserved', 'Confirmed')
                     AND name != %s
                     AND (
                         (TIME_TO_SEC(start_time) / 60) < %s
@@ -205,10 +406,11 @@ class ConferenceBooking(Document):
                 ),
             )
 
-            if overlapping_booking:
+            if overlap:
                 frappe.throw(
-                    f"Room already booked or buffer conflict on {booking_day}."
+                    f"Conference room already booked or buffer conflict on {booking_day}."
                 )
+
 
     # =========================================================
     # PROJECTOR VALIDATION
