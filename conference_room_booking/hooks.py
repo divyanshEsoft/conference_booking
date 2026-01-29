@@ -21,6 +21,18 @@ app_license = "mit"
 # 	}
 # ]
 
+csrf_exempt_methods = [
+    "conference_room_booking.conference_room_booking.conference_room_booking.api.conference_booking_api.book_room"
+]
+
+
+
+# ← ADD THIS: Whitelist your API from CSRF validation
+# ignore_csrf = [
+#     "/api/method/conference_room_booking.conference_room_booking.api.conference_booking_api.book_conference_room"
+# ]
+
+
 # Includes in <head>
 # ------------------
 
