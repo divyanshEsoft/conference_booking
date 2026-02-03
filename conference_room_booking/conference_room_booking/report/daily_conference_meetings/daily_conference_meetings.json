@@ -16,7 +16,6 @@
     "name": "Daily Conference Meetings",
     "owner": "Administrator",
     "prepared_report": 0,
-    "query": "SELECT\n    conference_room AS \"Conference Room:Link/Conference Room:150\",\n    meeting_title AS \"Meeting:Data:150\",\n    client_name AS \"Client:Data:150\",\n    TIME_FORMAT(start_time, '%%H:%%i') AS \"Start Time:Time:90\",\n    TIME_FORMAT(end_time, '%%H:%%i') AS \"End Time:Time:90\",\n    booking_date AS \"Date:Date:100\",\n    status AS \"Status:Data:100\"\nFROM `tabConference Booking`\nWHERE\n    booking_date = CURDATE()\n    AND status IN ('Confirmed', 'Reserved')\nORDER BY\n    conference_room,\n    start_time;\n",
     "ref_doctype": "Conference Booking",
     "reference_report": "",
     "report_name": "Daily Conference Meetings",

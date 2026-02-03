@@ -51,10 +51,9 @@
   },
   {
    "fieldname": "client_name",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Client Name",
-   "options": "Customer",
    "reqd": 1
   },
   {
@@ -136,7 +135,7 @@
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2026-01-27 15:42:16.078432",
+ "modified": "2026-02-02 17:15:48.184541",
  "modified_by": "Administrator",
  "module": "Conference Room Booking",
  "name": "Conference Booking",

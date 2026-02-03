@@ -193,16 +193,74 @@
 # Copyright (c) 2026, e.Soft Technologies
 # For license information, please see license.txt
 
-import frappe
-from frappe.utils import nowdate
+# import frappe
+# from frappe.utils import nowdate
 
 # =====================================================
 # REPORT EXECUTE
 # =====================================================
+
+
+
+# def execute(filters=None):
+
+#     filters = filters or {}
+
+#     from_date = filters.get("from_date") or nowdate()
+#     to_date = filters.get("to_date") or from_date
+
+#     columns = [
+#         {
+#             "label": "Conference Room",
+#             "fieldname": "conference_room",
+#             "fieldtype": "Link",
+#             "options": "Conference Room",
+#             "grouped": 1,
+#         },
+#         {"label": "Meeting", "fieldname": "meeting", "fieldtype": "Data"},
+#         {"label": "Client", "fieldname": "client", "fieldtype": "Data"},
+#         {"label": "Booked By", "fieldname": "booked_by", "fieldtype": "Data"},
+#         {"label": "Start Time", "fieldname": "start_time", "fieldtype": "Time"},
+#         {"label": "End Time", "fieldname": "end_time", "fieldtype": "Time"},
+#         {"label": "Date", "fieldname": "date", "fieldtype": "Date"},
+#         {"label": "Status", "fieldname": "status", "fieldtype": "Data"},
+#     ]
+
+#     data = frappe.db.sql(
+#         """
+#         SELECT
+#             conference_room,
+#             meeting_title AS meeting,
+#             client_name AS client,
+#             booked_by,
+#             TIME_FORMAT(start_time, '%%H:%%i') AS start_time,
+#             TIME_FORMAT(end_time, '%%H:%%i') AS end_time,
+#             booking_date AS date,
+#             status
+#         FROM `tabConference Booking`
+#         WHERE
+#             booking_date <= %(to_date)s
+#             AND COALESCE(booking_end_date, booking_date) >= %(from_date)s
+#             AND status IN ('Confirmed', 'Reserved')
+#         ORDER BY
+#             conference_room,
+#             booking_date,
+#             start_time
+#         """,
+#         {
+#             "from_date": from_date,
+#             "to_date": to_date,
+#         },
+#         as_dict=True,
+#     )
+
+#     return columns, data
+
+import frappe
+from frappe.utils import nowdate
+
 def execute(filters=None):
-
     filters = filters or {}
-
     from_date = filters.get("from_date") or nowdate()
     to_date = filters.get("to_date") or from_date
 
@@ -212,43 +270,55 @@ def execute(filters=None):
             "fieldname": "conference_room",
             "fieldtype": "Link",
             "options": "Conference Room",
-            "grouped": 1,
+            "width": 180,
         },
-        {"label": "Meeting", "fieldname": "meeting", "fieldtype": "Data"},
-        {"label": "Client", "fieldname": "client", "fieldtype": "Data"},
-        {"label": "Booked By", "fieldname": "booked_by", "fieldtype": "Data"},
-        {"label": "Start Time", "fieldname": "start_time", "fieldtype": "Time"},
-        {"label": "End Time", "fieldname": "end_time", "fieldtype": "Time"},
-        {"label": "Date", "fieldname": "date", "fieldtype": "Date"},
-        {"label": "Status", "fieldname": "status", "fieldtype": "Data"},
+        {"label": "Capacity", "fieldname": "capacity", "fieldtype": "Int", "width": 90},
+        {"label": "Has Projector", "fieldname": "has_projector", "fieldtype": "Check", "width": 110},
+        {"label": "Buffer (Min)", "fieldname": "buffer_minutes", "fieldtype": "Int", "width": 120},
+        {"label": "Availability", "fieldname": "availability", "fieldtype": "Data", "width": 150},
     ]
 
-    data = frappe.db.sql(
-        """
-        SELECT
-            conference_room,
-            meeting_title AS meeting,
-            client_name AS client,
-            booked_by,
-            TIME_FORMAT(start_time, '%%H:%%i') AS start_time,
-            TIME_FORMAT(end_time, '%%H:%%i') AS end_time,
-            booking_date AS date,
-            status
-        FROM `tabConference Booking`
-        WHERE
-            booking_date <= %(to_date)s
-            AND COALESCE(booking_end_date, booking_date) >= %(from_date)s
-            AND status IN ('Confirmed', 'Reserved')
-        ORDER BY
-            conference_room,
-            booking_date,
-            start_time
-        """,
-        {
-            "from_date": from_date,
-            "to_date": to_date,
-        },
-        as_dict=True,
+    rooms = frappe.get_all(
+        "Conference Room",
+        fields=["name", "capacity", "has_projector", "buffer_minutes", "is_active"]
     )
+
+    data = []
+
+    for room in rooms:
+        bookings = frappe.db.sql(
+            """
+            SELECT full_day
+            FROM `tabConference Booking`
+            WHERE
+                conference_room = %(room)s
+                AND status IN ('Confirmed', 'Reserved')
+                AND booking_date <= %(to_date)s
+                AND COALESCE(booking_end_date, booking_date) >= %(from_date)s
+            """,
+            {
+                "room": room.name,
+                "from_date": from_date,
+                "to_date": to_date,
+            },
+            as_dict=True,
+        )
+
+        if not room.is_active:
+            availability = "Inactive"
+        elif not bookings:
+            availability = "Available"
+        elif any(b.full_day for b in bookings):
+            availability = "Fully Booked"
+        else:
+            availability = "Reserved"
+
+        data.append({
+            "conference_room": room.name,
+            "capacity": room.capacity,
+            "has_projector": room.has_projector,
+            "buffer_minutes": room.buffer_minutes,
+            "availability": availability,
+        })
 
     return columns, data
