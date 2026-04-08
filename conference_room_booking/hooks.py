@@ -15,7 +15,7 @@ app_license = "mit"
 # 	{
 # 		"name": "conference_room_booking",
 # 		"logo": "/assets/conference_room_booking/logo.png",
-# 		"title": "COnference Room Booking",
+# 		"title": "Conference Room Booking",
 # 		"route": "/conference_room_booking",
 # 		"has_permission": "conference_room_booking.api.permission.has_app_permission"
 # 	}
