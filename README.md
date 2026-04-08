@@ -1,4 +1,4 @@
-### COnference Room Booking
+### Conference Room Booking
 
 Conference room booking and scheduling system
 
