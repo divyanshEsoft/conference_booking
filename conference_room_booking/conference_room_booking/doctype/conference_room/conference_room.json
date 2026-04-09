@@ -9,6 +9,8 @@
   "room_name",
   "floor_area",
   "capacity",
+  "booking_start_time",
+  "booking_end_time",
   "has_projector",
   "reserved_for_management",
   "column_break_nzkk",
@@ -34,6 +36,16 @@
    "fieldname": "capacity",
    "fieldtype": "Int",
    "label": "Capacity"
+  },
+  {
+   "fieldname": "booking_start_time",
+   "fieldtype": "Time",
+   "label": "Booking Start Time"
+  },
+  {
+   "fieldname": "booking_end_time",
+   "fieldtype": "Time",
+   "label": "Booking End Time"
   },
   {
    "default": "0",
