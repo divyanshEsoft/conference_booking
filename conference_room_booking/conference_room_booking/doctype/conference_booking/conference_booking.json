@@ -7,7 +7,6 @@
  "engine": "InnoDB",
  "field_order": [
   "booking_date",
-  "booking_end_date",
   "conference_room",
   "meeting_title",
   "group_name",
@@ -28,7 +27,7 @@
    "fieldname": "booking_date",
    "fieldtype": "Date",
    "in_list_view": 1,
-   "label": "Booking Start Date",
+   "label": "Booking Date",
    "reqd": 1
   },
   {
@@ -123,21 +122,15 @@
    "fieldtype": "Check",
    "in_list_view": 1,
    "label": "Projector Required"
-  },
-  {
-   "fieldname": "booking_end_date",
-   "fieldtype": "Date",
-   "label": "Booking End Date",
-   "reqd": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2026-02-02 17:15:48.184541",
+ "modified": "2026-04-14 14:17:06.360958",
  "modified_by": "Administrator",
- "module": "Conference Room Booking",
+ "module": "COnference Room Booking",
  "name": "Conference Booking",
  "naming_rule": "Expression",
  "owner": "Administrator",
