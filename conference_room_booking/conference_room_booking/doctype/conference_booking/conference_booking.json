@@ -28,6 +28,7 @@
    "fieldtype": "Date",
    "in_list_view": 1,
    "label": "Booking Date",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
@@ -36,23 +37,27 @@
    "in_list_view": 1,
    "label": "Conference Room",
    "options": "Conference Room",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" \r\n|| doc.status == \"Cancelled\" \r\n|| !doc.start_time \r\n|| !doc.end_time \r\n|| !doc.booking_date",
    "reqd": 1
   },
   {
    "fieldname": "meeting_title",
    "fieldtype": "Data",
-   "label": "Meeting Title"
+   "label": "Meeting Title",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   },
   {
    "fieldname": "group_name",
    "fieldtype": "Data",
-   "label": "Group Name"
+   "label": "Group Name",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   },
   {
    "fieldname": "client_name",
    "fieldtype": "Data",
    "in_list_view": 1,
    "label": "Client Name",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
@@ -60,6 +65,7 @@
    "fieldtype": "Select",
    "label": "Meeting Type",
    "options": "Offline\nOnline\nHybrid\nInternal\nClient Visit",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
@@ -67,6 +73,7 @@
    "fieldtype": "Link",
    "label": "Booked By",
    "options": "User",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
@@ -75,17 +82,20 @@
    "fieldtype": "Check",
    "hidden": 1,
    "in_list_view": 1,
-   "label": "Full Day"
+   "label": "Full Day",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   },
   {
    "fieldname": "column_break_idkb",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   },
   {
    "fieldname": "start_time",
    "fieldtype": "Time",
    "in_list_view": 1,
    "label": "Start Time",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
@@ -93,6 +103,7 @@
    "fieldtype": "Time",
    "in_list_view": 1,
    "label": "End Time",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
@@ -100,20 +111,23 @@
    "fieldtype": "Select",
    "in_list_view": 1,
    "label": "Status",
-   "options": "Draft\nReserved\nConfirmed\nCompleted\nCancelled",
+   "options": "Reserved\nCompleted\nCancelled",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
    "fieldname": "remarks",
    "fieldtype": "Small Text",
-   "label": "Remarks"
+   "label": "Remarks",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   },
   {
    "depends_on": "eval:doc.status == \"Cancelled\"",
    "fieldname": "cancellation_reason",
    "fieldtype": "Small Text",
    "in_list_view": 1,
-   "label": "Cancellation Reason"
+   "label": "Cancellation Reason",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   },
   {
    "default": "0",
@@ -121,14 +135,15 @@
    "fieldname": "projector_required",
    "fieldtype": "Check",
    "in_list_view": 1,
-   "label": "Projector Required"
+   "label": "Projector Required",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2026-04-14 14:17:06.360958",
+ "modified": "2026-04-16 14:04:19.786085",
  "modified_by": "Administrator",
  "module": "COnference Room Booking",
  "name": "Conference Booking",

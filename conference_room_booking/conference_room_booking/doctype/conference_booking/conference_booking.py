@@ -291,6 +291,11 @@ class ConferenceBooking(Document):
                 "Projector is required for this meeting, "
                 "but the selected conference room does not have one."
             )
+    
+    def after_insert(self):
+        if not self.status or self.status == "Draft":
+            self.status = "Reserved"
+            self.db_set("status", "Reserved")
 
     # =========================================================
     # PROTECT COMPLETED BOOKINGS // Prevent editing completed bookings
