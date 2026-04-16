@@ -291,6 +291,11 @@ class ConferenceBooking(Document):
                 "Projector is required for this meeting, "
                 "but the selected conference room does not have one."
             )
+    
+    def after_insert(self):
+        if not self.status or self.status == "Draft":
+            self.status = "Reserved"
+            self.db_set("status", "Reserved")
 
     # =========================================================
     # PROTECT COMPLETED BOOKINGS // Prevent editing completed bookings
@@ -359,3 +364,49 @@ def get_available_rooms(doctype, txt, searchfield, start, page_len, filters):
         as_list=True
     )
 
+
+def update_reserved_to_completed():
+    """
+    Scheduled task (runs every 5 minutes)
+    Updates booking status from 'Reserved' to 'Completed' when end time + buffer time has passed
+    """
+    from frappe.utils import now_datetime, get_datetime
+    from datetime import timedelta
+
+    current_datetime = now_datetime()
+
+    # Find all Reserved bookings with required fields
+    bookings_to_update = frappe.db.sql(
+        """
+        SELECT name, booking_date, end_time, conference_room
+        FROM `tabConference Booking`
+        WHERE
+            status = 'Reserved'
+            AND booking_date IS NOT NULL
+            AND end_time IS NOT NULL
+            AND conference_room IS NOT NULL
+        """,
+        as_dict=True
+    )
+
+    updated_count = 0
+
+    for booking in bookings_to_update:
+        # Get the room's buffer time
+        room = frappe.get_cached_doc("Conference Room", booking.conference_room)
+        buffer_minutes = room.buffer_minutes or 0
+
+        # Calculate the end datetime for this booking
+        booking_end_datetime = get_datetime(f"{booking.booking_date} {booking.end_time}")
+
+        # Add buffer time to end datetime
+        booking_end_with_buffer = booking_end_datetime + timedelta(minutes=buffer_minutes)
+
+        # If end time + buffer has passed, update status to Completed
+        if booking_end_with_buffer < current_datetime:
+            frappe.db.set_value("Conference Booking", booking.name, "status", "Completed", update_modified=False)
+            updated_count += 1
+
+    if updated_count > 0:
+        frappe.db.commit()
+        frappe.logger().info(f"Updated {updated_count} bookings from Reserved to Completed (with buffer time)")
