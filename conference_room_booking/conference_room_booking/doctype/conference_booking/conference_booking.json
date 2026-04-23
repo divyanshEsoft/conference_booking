@@ -64,16 +64,15 @@
    "fieldname": "meeting_type",
    "fieldtype": "Select",
    "label": "Meeting Type",
-   "options": "Offline\nOnline\nHybrid\nInternal\nClient Visit",
+   "options": "Hybrid\nInternal\nClient Visit",
    "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {
    "fieldname": "booked_by",
-   "fieldtype": "Link",
+   "fieldtype": "Data",
    "label": "Booked By",
-   "options": "User",
-   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
+   "read_only": 1,
    "reqd": 1
   },
   {
@@ -143,9 +142,9 @@
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2026-04-16 14:04:19.786085",
+ "modified": "2026-04-23 13:00:56.742103",
  "modified_by": "Administrator",
- "module": "COnference Room Booking",
+ "module": "Conference Room Booking",
  "name": "Conference Booking",
  "naming_rule": "Expression",
  "owner": "Administrator",

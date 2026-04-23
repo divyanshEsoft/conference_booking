@@ -87,12 +87,15 @@ class ConferenceBooking(Document):
         if end_time <= start_time:
             frappe.throw("End Time must be after Start Time.")
 
-        # #  Optional: Office hours restriction (future ready)
-        # office_start = get_time("09:00:00")
-        # office_end = get_time("19:00:00")
-
-        # if start_time < office_start or end_time > office_end:
-        #     frappe.throw("Bookings are allowed only between 9 AM and 7 PM.")
+        # Check against Room's allowed booking hours
+        if self.conference_room:
+            room = frappe.get_cached_doc("Conference Room", self.conference_room)
+            if room.booking_start_time and room.booking_end_time:
+                if start_time < get_time(room.booking_start_time):
+                    frappe.throw(f"Start Time cannot be before Room's opening time ({room.booking_start_time})")
+                
+                if end_time > get_time(room.booking_end_time):
+                    frappe.throw(f"End Time cannot be after Room's closing time ({room.booking_end_time})")
 
 
 # ----------------------------------------------------
