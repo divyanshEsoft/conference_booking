@@ -1,0 +1,49 @@
+{
+ "charts": [],
+ "content": "[{\"id\":\"CRBHdr001\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Your Shortcuts</b></span>\",\"col\":12}},{\"id\":\"CRBSht001\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Conference Room\",\"col\":3}},{\"id\":\"CRBSht002\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Conference Booking\",\"col\":3}},{\"id\":\"CRBSpc001\",\"type\":\"spacer\",\"data\":{\"col\":12}},{\"id\":\"CRBHdr002\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\"><b>Reports</b></span>\",\"col\":12}},{\"id\":\"CRBSht003\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Meeting Chart\",\"col\":3}}]",
+ "creation": "2026-05-21 10:18:00.000000",
+ "custom_blocks": [],
+ "docstatus": 0,
+ "doctype": "Workspace",
+ "for_user": "",
+ "hide_custom": 0,
+ "icon": "calendar",
+ "idx": 0,
+ "is_hidden": 0,
+ "label": "Conference",
+ "links": [],
+ "modified": "2026-05-21 10:18:00.000000",
+ "modified_by": "Administrator",
+ "module": "Conference Room Booking",
+ "name": "Conference",
+ "owner": "Administrator",
+ "parent_page": "",
+ "public": 1,
+ "quick_lists": [],
+ "restrict_to_domain": "",
+ "roles": [],
+ "sequence_id": 16.0,
+ "shortcuts": [
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Conference Room",
+   "link_to": "Conference Room",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "doc_view": "List",
+   "label": "Conference Booking",
+   "link_to": "Conference Booking",
+   "type": "DocType"
+  },
+  {
+   "color": "Blue",
+   "label": "Meeting Chart",
+   "link_to": "Meeting Chart",
+   "type": "Report"
+  }
+ ],
+ "title": "Conference"
+}
