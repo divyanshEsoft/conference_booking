@@ -28,9 +28,31 @@ frappe.ui.form.on("Conference Booking", {
 			frm.set_value('booked_by', frappe.session.user);
 		}
 
+		if (frm.is_new() && !frm.doc.group_name) {
+			frappe.db.get_value("Employee", {"user_id": frappe.session.user}, ["employee_name", "department"])
+				.then(r => {
+					if (r && r.message) {
+						let name = r.message.employee_name;
+						let dept = r.message.department;
+						frm.set_value('group_name', dept ? `${name} - ${dept}` : name);
+					} else {
+						frappe.db.get_value("User", frappe.session.user, "full_name")
+							.then(u => {
+								let name = (u && u.message && u.message.full_name) || frappe.session.user;
+								frm.set_value('group_name', name);
+							});
+					}
+				});
+		}
+
 		frm.set_df_property('booked_by', 'read_only', 1);
 		if (frm.fields_dict.booked_by && frm.fields_dict.booked_by.input) {
 			$(frm.fields_dict.booked_by.input).prop('readonly', true);
+		}
+
+		frm.set_df_property('group_name', 'read_only', 1);
+		if (frm.fields_dict.group_name && frm.fields_dict.group_name.input) {
+			$(frm.fields_dict.group_name.input).prop('readonly', true);
 		}
 	},
 
@@ -44,6 +66,12 @@ frappe.ui.form.on("Conference Booking", {
 		frm.set_df_property('booked_by', 'read_only', 1);
 		if (frm.fields_dict.booked_by && frm.fields_dict.booked_by.input) {
 			$(frm.fields_dict.booked_by.input).prop('readonly', true);
+		}
+
+		// Force group_name to be read-only
+		frm.set_df_property('group_name', 'read_only', 1);
+		if (frm.fields_dict.group_name && frm.fields_dict.group_name.input) {
+			$(frm.fields_dict.group_name.input).prop('readonly', true);
 		}
 	},
 

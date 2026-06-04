@@ -11,10 +11,35 @@ class ConferenceBooking(Document):
     def validate(self):
 
         self.set_defaults()
+        self.set_group_name()
         self.set_calendar_datetimes()
         self.validate_management_reserved_room()
         self.validate_booking_time()
         self.validate_overlapping_booking()
+
+
+    def set_group_name(self):
+        if not self.booked_by:
+            return
+
+        employee = frappe.db.get_value(
+            "Employee",
+            {"user_id": self.booked_by},
+            ["employee_name", "department"],
+            as_dict=True
+        )
+
+        if employee:
+            person_name = employee.employee_name
+            team_name = employee.department
+        else:
+            person_name = frappe.db.get_value("User", self.booked_by, "full_name") or self.booked_by
+            team_name = None
+
+        if team_name:
+            self.group_name = f"{person_name} - {team_name}"
+        else:
+            self.group_name = person_name
 
 
     def set_calendar_datetimes(self):

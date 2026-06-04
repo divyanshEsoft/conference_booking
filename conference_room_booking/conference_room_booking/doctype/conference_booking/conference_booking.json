@@ -50,7 +50,7 @@
    "fieldname": "group_name",
    "fieldtype": "Data",
    "label": "Group Name",
-   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
+   "read_only": 1
   },
   {
    "fieldname": "client_name",
