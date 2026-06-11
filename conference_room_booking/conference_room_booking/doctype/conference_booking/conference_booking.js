@@ -1,6 +1,47 @@
 // Copyright (c) 2026, e.Soft Techonoligies and contributors
 // For license information, please see license.txt
 
+if (!frappe.conference_rooms_cache) {
+	frappe.conference_rooms_cache = {};
+}
+
+// Intercept get_link_title to format Conference Room links in edit mode/autocomplete inputs
+if (!frappe.utils._original_get_link_title) {
+	frappe.utils._original_get_link_title = frappe.utils.get_link_title;
+	frappe.utils.get_link_title = function (doctype, name) {
+		if (doctype === "Conference Room" && name) {
+			if (frappe.conference_rooms_cache[name]) {
+				return frappe.conference_rooms_cache[name];
+			}
+		}
+		return frappe.utils._original_get_link_title(doctype, name);
+	};
+}
+
+frappe.form.link_formatters["Conference Room"] = function (value, doc, docfield) {
+	if (!value) return value;
+	if (frappe.conference_rooms_cache[value]) {
+		return frappe.conference_rooms_cache[value];
+	}
+
+	// Fetch asynchronously and refresh the field
+	frappe.db.get_value("Conference Room", value, ["room_name", "capacity"])
+		.then(r => {
+			if (r && r.message) {
+				let name = r.message.room_name || value;
+				let cap = r.message.capacity;
+				let display = cap ? `${name} - Capacity: ${cap}` : name;
+				frappe.conference_rooms_cache[value] = display;
+				frappe.utils.add_link_title("Conference Room", value, display);
+				if (cur_frm && cur_frm.doc && cur_frm.refresh_field) {
+					cur_frm.refresh_field(docfield.fieldname);
+				}
+			}
+		});
+
+	return value;
+};
+
 frappe.ui.form.on("Conference Booking", {
 	setup(frm) {
 		// Filter rooms based on selected date and time
@@ -23,6 +64,21 @@ frappe.ui.form.on("Conference Booking", {
 		frm._original_start_time = frm.doc.start_time;
 		frm._original_end_time = frm.doc.end_time;
 		frm.__confirmed_change = false;
+
+		// Pre-populate link formatter cache for the selected room
+		if (frm.doc.conference_room) {
+			frappe.db.get_value("Conference Room", frm.doc.conference_room, ["room_name", "capacity"])
+				.then(r => {
+					if (r && r.message) {
+						let name = r.message.room_name || frm.doc.conference_room;
+						let cap = r.message.capacity;
+						let display = cap ? `${name} - Capacity: ${cap}` : name;
+						frappe.conference_rooms_cache[frm.doc.conference_room] = display;
+						frappe.utils.add_link_title("Conference Room", frm.doc.conference_room, display);
+						frm.refresh_field("conference_room");
+					}
+				});
+		}
 
 		if (frm.is_new() && (!frm.doc.booked_by || frm.doc.booked_by === '{user}')) {
 			frm.set_value('booked_by', frappe.session.user);
@@ -121,6 +177,19 @@ frappe.ui.form.on("Conference Booking", {
 	
 	conference_room(frm) {
 		validate_room_hours(frm);
+		if (frm.doc.conference_room) {
+			frappe.db.get_value("Conference Room", frm.doc.conference_room, ["room_name", "capacity"])
+				.then(r => {
+					if (r && r.message) {
+						let name = r.message.room_name || frm.doc.conference_room;
+						let cap = r.message.capacity;
+						let display = cap ? `${name} - Capacity: ${cap}` : name;
+						frappe.conference_rooms_cache[frm.doc.conference_room] = display;
+						frappe.utils.add_link_title("Conference Room", frm.doc.conference_room, display);
+						frm.refresh_field("conference_room");
+					}
+				});
+		}
 	}
 });
 
@@ -143,6 +212,16 @@ function validate_room_hours(frm) {
 	if (!frm.doc.conference_room || frm.doc.full_day) return;
 	if (!frm.doc.start_time && !frm.doc.end_time) return;
 
+	// Helper: convert "HH:MM:SS" or "HH:MM:SS.ffffff" to total seconds
+	function timeToSeconds(t) {
+		if (!t) return null;
+		const parts = String(t).split(':');
+		const h = parseInt(parts[0]) || 0;
+		const m = parseInt(parts[1]) || 0;
+		const s = parseFloat(parts[2]) || 0;
+		return h * 3600 + m * 60 + s;
+	}
+
 	frappe.db.get_value("Conference Room", frm.doc.conference_room, ["booking_start_time", "booking_end_time"])
 		.then(r => {
 			if (r && r.message) {
@@ -150,12 +229,18 @@ function validate_room_hours(frm) {
 				let end_limit = r.message.booking_end_time;
 
 				if (start_limit && end_limit) {
-					if (frm.doc.start_time && frm.doc.start_time < start_limit) {
-						frappe.msgprint(__('Start time cannot be before room opening time ({0})', [start_limit]));
+					const roomOpen = timeToSeconds(start_limit);
+					const roomClose = timeToSeconds(end_limit);
+
+					if (frm.doc.start_time && timeToSeconds(frm.doc.start_time) < roomOpen) {
+						// Format the limit nicely (strip microseconds)
+						const limitDisplay = String(start_limit).split('.')[0];
+						frappe.msgprint(__('Start time cannot be before room opening time ({0})', [limitDisplay]));
 						frm.set_value('start_time', '');
 					}
-					if (frm.doc.end_time && frm.doc.end_time > end_limit) {
-						frappe.msgprint(__('End time cannot be after room closing time ({0})', [end_limit]));
+					if (frm.doc.end_time && timeToSeconds(frm.doc.end_time) > roomClose) {
+						const limitDisplay = String(end_limit).split('.')[0];
+						frappe.msgprint(__('End time cannot be after room closing time ({0})', [limitDisplay]));
 						frm.set_value('end_time', '');
 					}
 				}

@@ -37,7 +37,7 @@
    "in_list_view": 1,
    "label": "Conference Room",
    "options": "Conference Room",
-   "read_only_depends_on": "eval: doc.status == \"Completed\" \r\n|| doc.status == \"Cancelled\" \r\n|| !doc.start_time \r\n|| !doc.end_time \r\n|| !doc.booking_date",
+   "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\"",
    "reqd": 1
   },
   {

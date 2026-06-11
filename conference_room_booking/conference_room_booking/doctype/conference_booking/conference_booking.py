@@ -379,18 +379,26 @@ def get_available_rooms(doctype, txt, searchfield, start, page_len, filters):
 
     # 2. Get all active rooms that are NOT in the occupied list
     rooms_filter = {"is_active": 1}
-    if txt:
-        rooms_filter["name"] = ["like", f"%{txt}%"]
-    
+
     if occupied_room_names:
         rooms_filter["name"] = ["not in", occupied_room_names]
 
-    return frappe.get_all(
+    rooms = frappe.get_all(
         "Conference Room",
         filters=rooms_filter,
-        fields=["name", "room_name"],
-        as_list=True
+        fields=["name", "room_name", "capacity"],
     )
+
+    # Filter by search text on room_name or name
+    if txt:
+        txt_lower = txt.lower()
+        rooms = [r for r in rooms if txt_lower in (r.room_name or "").lower() or txt_lower in (r.name or "").lower()]
+
+    # Return as list of [name, display_label] so Frappe shows Room Name - Capacity
+    return [
+        [r.name, f"{r.room_name} - Capacity: {r.capacity}" if r.capacity else r.room_name]
+        for r in rooms
+    ]
 
 
 def update_reserved_to_completed():

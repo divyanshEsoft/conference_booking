@@ -5,6 +5,19 @@ app_description = "Conference room booking and scheduling system"
 app_email = "divyansh@esoftech.com"
 app_license = "mit"
 
+# Fixtures - applied on bench migrate to sync custom fields across machines
+fixtures = [
+    {
+        "dt": "Custom Field",
+        "filters": [["dt", "=", "Conference Booking"]]
+    },
+    {
+        "dt": "Property Setter",
+        "filters": [["doc_type", "=", "Conference Booking"]]
+    }
+]
+
+
 # Apps
 # ------------------
 

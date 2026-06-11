@@ -5,6 +5,8 @@
  "creation": "2026-01-16 12:44:00.526785",
  "doctype": "DocType",
  "engine": "InnoDB",
+ "title_field": "room_name",
+ "show_title_field_in_link": 1,
  "field_order": [
   "room_name",
   "floor_area",
