@@ -42,6 +42,7 @@
   },
   {
    "fieldname": "meeting_title",
+   "hidden": 1,
    "fieldtype": "Data",
    "label": "Meeting Title",
    "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
