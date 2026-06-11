@@ -16,6 +16,7 @@ class ConferenceBooking(Document):
         self.validate_management_reserved_room()
         self.validate_booking_time()
         self.validate_overlapping_booking()
+        self.validate_capacity()
 
 
     def set_group_name(self):
@@ -121,6 +122,18 @@ class ConferenceBooking(Document):
                 
                 if end_time > get_time(room.booking_end_time):
                     frappe.throw(f"End Time cannot be after Room's closing time ({room.booking_end_time})")
+
+
+    def validate_capacity(self):
+        if not self.conference_room or not self.custom_no_of_attendees:
+            return
+
+        room_capacity = frappe.db.get_value("Conference Room", self.conference_room, "capacity")
+        if room_capacity and int(self.custom_no_of_attendees) > int(room_capacity):
+            frappe.throw(
+                f"Number of attendees ({self.custom_no_of_attendees}) cannot exceed "
+                f"the selected conference room's capacity ({room_capacity})."
+            )
 
 
 # ----------------------------------------------------

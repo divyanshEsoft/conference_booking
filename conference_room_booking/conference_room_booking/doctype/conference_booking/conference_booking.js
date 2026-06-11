@@ -129,6 +129,13 @@ frappe.ui.form.on("Conference Booking", {
 		if (frm.fields_dict.group_name && frm.fields_dict.group_name.input) {
 			$(frm.fields_dict.group_name.input).prop('readonly', true);
 		}
+
+		// Real-time capacity validation on input
+		if (frm.fields_dict.custom_no_of_attendees && frm.fields_dict.custom_no_of_attendees.$input) {
+			frm.fields_dict.custom_no_of_attendees.$input.off("input.capacity").on("input.capacity", function() {
+				validate_capacity_realtime(frm);
+			});
+		}
 	},
 
 	booking_date(frm) {
@@ -187,9 +194,14 @@ frappe.ui.form.on("Conference Booking", {
 						frappe.conference_rooms_cache[frm.doc.conference_room] = display;
 						frappe.utils.add_link_title("Conference Room", frm.doc.conference_room, display);
 						frm.refresh_field("conference_room");
+						validate_capacity(frm);
 					}
 				});
 		}
+	},
+
+	custom_no_of_attendees(frm) {
+		validate_capacity(frm);
 	}
 });
 
@@ -246,4 +258,39 @@ function validate_room_hours(frm) {
 				}
 			}
 		});
+}
+
+function validate_capacity(frm) {
+	if (frm.doc.custom_no_of_attendees && frm.doc.conference_room) {
+		frappe.db.get_value("Conference Room", frm.doc.conference_room, "capacity")
+			.then(r => {
+				if (r && r.message) {
+					let cap = parseInt(r.message.capacity) || 0;
+					let attendees = parseInt(frm.doc.custom_no_of_attendees) || 0;
+					if (cap && attendees > cap) {
+						frappe.msgprint(__('Number of attendees ({0}) cannot exceed the room capacity ({1})', [attendees, cap]));
+						frm.set_value('custom_no_of_attendees', '');
+					}
+				}
+			});
+	}
+}
+
+function validate_capacity_realtime(frm) {
+	if (frm.fields_dict.custom_no_of_attendees && frm.fields_dict.custom_no_of_attendees.$input && frm.doc.conference_room) {
+		let val = frm.fields_dict.custom_no_of_attendees.$input.val();
+		if (val) {
+			frappe.db.get_value("Conference Room", frm.doc.conference_room, "capacity")
+				.then(r => {
+					if (r && r.message) {
+						let cap = parseInt(r.message.capacity) || 0;
+						let attendees = parseInt(val) || 0;
+						if (cap && attendees > cap) {
+							frappe.msgprint(__('Number of attendees ({0}) cannot exceed the room capacity ({1})', [attendees, cap]));
+							frm.set_value('custom_no_of_attendees', '');
+						}
+					}
+				});
+		}
+	}
 }
