@@ -2,10 +2,19 @@
 // For license information, please see license.txt
 
 function cbr_can_book_past() {
-	return frappe.user.has_role("System Manager") ||
-		frappe.user.has_role("HR Manager") ||
+	// Allow HR Manager, System Manager, or Administrator to perform past bookings
+	// Users with only HR User (without HR Manager) will be restricted (return false)
+	return frappe.user.has_role("HR Manager") ||
+		frappe.user.has_role("System Manager") ||
 		frappe.session.user === "Administrator";
 }
+
+// Disable Past Bookings Completely for Everyone:
+// function cbr_can_book_past() {
+// 	return false;
+// }
+
+
 
 frappe.query_reports["Conference Booking Report"] = {
 	filters: [
