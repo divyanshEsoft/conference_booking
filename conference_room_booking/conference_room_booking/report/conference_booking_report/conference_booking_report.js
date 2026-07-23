@@ -2,9 +2,9 @@
 // For license information, please see license.txt
 
 function cbr_can_book_past() {
-	return frappe.user.has_role("System Manager") || 
-	       frappe.user.has_role("HR Manager") || 
-	       frappe.session.user === "Administrator";
+	return frappe.user.has_role("System Manager") ||
+		frappe.user.has_role("HR Manager") ||
+		frappe.session.user === "Administrator";
 }
 
 frappe.query_reports["Conference Booking Report"] = {
@@ -169,13 +169,23 @@ function cbr_build_room_card(room, selected_date) {
 	let now_time = moment();
 	let current_minutes = now_time.hours() * 60 + now_time.minutes();
 
-	let start_min = 10 * 60; // 10:00 AM
-	let end_min = 22 * 60;   // 10:00 PM
+	// Calculate dynamic timeline bounds based on room opening and closing hours
+	let room_start_min = room.booking_start_time ? cbr_time_to_minutes(room.booking_start_time) : (10 * 60);
+	let room_closing_min = room.booking_end_time ? cbr_time_to_minutes(room.booking_end_time) : (22 * 60);
+
+	let start_min = Math.min(10 * 60, Math.floor(room_start_min / 60) * 60);
+	let end_min = Math.max(22 * 60, Math.ceil(room_closing_min / 60) * 60);
 	let total_mins = end_min - start_min;
 
 	let now_pct = ((current_minutes - start_min) / total_mins) * 100;
 	let show_now = is_today && (now_pct >= 0 && now_pct <= 100);
 	let now_time_formatted = now_time.format('hh:mm A');
+
+	// Dynamic timeline scale ticks
+	let scale_ticks_html = "";
+	for (let tick = start_min; tick <= end_min; tick += 120) {
+		scale_ticks_html += `<span>${cbr_format_mins_to_12h(tick)}</span>`;
+	}
 
 	let segments_html = "";
 	let interval = 30;
@@ -184,7 +194,10 @@ function cbr_build_room_card(room, selected_date) {
 		let seg_start = m;
 		let seg_end = m + interval;
 
-		let is_past = is_past_date || (is_today && seg_end <= current_minutes);
+		let is_before_opening = (seg_start < room_start_min);
+		let is_after_closing = (seg_end > room_closing_min);
+		let is_past = is_past_date || (is_today && seg_end <= current_minutes) || is_before_opening || is_after_closing;
+
 		let bk_match = room.bookings.find(b => {
 			let b_start = cbr_time_to_minutes(b.start_time_str);
 			let b_end = cbr_time_to_minutes(b.end_time_str);
@@ -198,10 +211,14 @@ function cbr_build_room_card(room, selected_date) {
 
 		let tooltip = slot_12h;
 		if (is_booked && bk_match) {
-			let bk_time = (bk_match.start_time_12h && bk_match.end_time_12h) 
+			let bk_time = (bk_match.start_time_12h && bk_match.end_time_12h)
 				? `${bk_match.start_time_12h} – ${bk_match.end_time_12h}`
 				: `${bk_match.start_time_str} – ${bk_match.end_time_str}`;
 			tooltip = `Booked: ${bk_time} (${bk_match.client_name || bk_match.booked_by})`;
+		} else if (is_before_opening) {
+			tooltip += " (Before Opening)";
+		} else if (is_after_closing) {
+			tooltip += " (Closed)";
 		} else if (is_past) {
 			tooltip += can_past ? " (Past - HR/Admin Allowed)" : " (Past)";
 		} else {
@@ -209,9 +226,11 @@ function cbr_build_room_card(room, selected_date) {
 		}
 
 		let encoded_room = encodeURIComponent(room.room_id || '');
-		let click_action = (is_past && !can_past)
-			? "frappe.show_alert({message: __('Cannot book a room for a past date/time.'), indicator: 'orange'})"
-			: (is_booked ? "" : `cbr_open_book_dialog(decodeURIComponent('${encoded_room}'), '${slot_time_str}')`);
+		let click_action = (is_before_opening || is_after_closing)
+			? `frappe.show_alert({message: __('Room hours are ${cbr_format_mins_to_12h(room_start_min)} to ${cbr_format_mins_to_12h(room_closing_min)}. Slot is closed.'), indicator: 'orange'})`
+			: ((is_past && !can_past)
+				? "frappe.show_alert({message: __('Cannot book a room for a past date/time.'), indicator: 'orange'})"
+				: (is_booked ? "" : `cbr_open_book_dialog(decodeURIComponent('${encoded_room}'), '${slot_time_str}')`));
 
 		segments_html += `
 		<div class="cbr-seg ${status_cls}" 
@@ -258,7 +277,7 @@ function cbr_build_room_card(room, selected_date) {
 		</div>
 
 		<div class="cbr-timeline-scale">
-			<span>10 AM</span><span>12 PM</span><span>2 PM</span><span>4 PM</span><span>6 PM</span><span>8 PM</span><span>10 PM</span>
+			${scale_ticks_html}
 		</div>
 
 		<div class="cbr-timeline-track-wrap">
@@ -318,7 +337,11 @@ function cbr_open_book_dialog(room_id, start_time) {
 
 	start_time = start_time || "10:00:00";
 	let start_mins = cbr_time_to_minutes(start_time);
-	let default_end_time = cbr_minutes_to_time(start_mins + 60);
+
+	let room_obj = raw_data.find(r => r.room_id === room_id || r.name === room_id) || {};
+	let closing_min = room_obj.booking_end_time ? cbr_time_to_minutes(room_obj.booking_end_time) : (22 * 60);
+	let default_end_mins = Math.min(start_mins + 60, closing_min);
+	let default_end_time = cbr_minutes_to_time(default_end_mins);
 
 	let default_client = frappe.session.user_fullname || frappe.session.user || "";
 
@@ -376,7 +399,7 @@ function cbr_open_book_dialog(room_id, start_time) {
 				reqd: 1
 			},
 			{
-				fieldname: "no_of_persons",
+				fieldname: "custom_no_of_attendees",
 				label: __("Number of Persons / Attendees"),
 				fieldtype: "Int",
 				default: 1,
@@ -421,19 +444,28 @@ function cbr_open_book_dialog(room_id, start_time) {
 				return;
 			}
 
+			// Validate room closing time
+			let room_info = (frappe.query_report.data || []).find(r => r.room_id === data.conference_room || r.name === data.conference_room);
+			if (room_info && room_info.booking_end_time) {
+				let room_closing = cbr_time_to_minutes(room_info.booking_end_time);
+				let booking_end = cbr_time_to_minutes(data.end_time);
+				if (booking_end > room_closing) {
+					frappe.throw(__("End Time cannot be after Room's closing time ({0})", [cbr_format_mins_to_12h(room_closing)]));
+					return;
+				}
+			}
+
 			// Validate room capacity
-			let room_obj = (frappe.query_report.data || []).find(r => r.room_id === data.conference_room || r.name === data.conference_room);
-			if (room_obj && room_obj.capacity && data.no_of_persons > room_obj.capacity) {
-				frappe.throw(__("Exceeds Capacity! <b>{0}</b> has a maximum capacity of <b>{1} persons</b>. You entered {2}.", [room_obj.room_name || data.conference_room, room_obj.capacity, data.no_of_persons]));
+			if (room_info && room_info.capacity && data.custom_no_of_attendees > room_info.capacity) {
+				frappe.throw(__("Exceeds Capacity! <b>{0}</b> has a maximum capacity of <b>{1} persons</b>. You entered {2}.", [room_info.room_name || data.conference_room, room_info.capacity, data.custom_no_of_attendees]));
 				return;
 			}
 
-			if (!data.group_name && data.no_of_persons) {
-				data.group_name = `${data.no_of_persons} Attendees`;
-			} else if (data.group_name && data.no_of_persons) {
-				data.group_name = `${data.group_name} (${data.no_of_persons} Persons)`;
+			if (!data.group_name && data.custom_no_of_attendees) {
+				data.group_name = `${data.custom_no_of_attendees} Attendees`;
+			} else if (data.group_name && data.custom_no_of_attendees) {
+				data.group_name = `${data.group_name} (${data.custom_no_of_attendees} Persons)`;
 			}
-			delete data.no_of_persons;
 
 			data.doctype = "Conference Booking";
 			data.status = "Reserved";
@@ -453,7 +485,7 @@ function cbr_open_book_dialog(room_id, start_time) {
 		start_time: start_time,
 		end_time: default_end_time,
 		client_name: default_client,
-		no_of_persons: 1,
+		custom_no_of_attendees: 1,
 		meeting_type: "Online"
 	});
 
@@ -464,18 +496,18 @@ function cbr_open_book_dialog(room_id, start_time) {
 
 function cbr_validate_capacity(dialog) {
 	let room = dialog.get_value("conference_room");
-	let persons = dialog.get_value("no_of_persons");
+	let persons = dialog.get_value("custom_no_of_attendees");
 	if (room) {
 		let room_obj = (frappe.query_report.data || []).find(r => r.room_id === room || r.name === room);
 		if (room_obj && room_obj.capacity) {
-			dialog.set_df_property("no_of_persons", "description", `Max capacity for ${room_obj.room_name || room}: <b>${room_obj.capacity} persons</b>`);
+			dialog.set_df_property("custom_no_of_attendees", "description", `Max capacity for ${room_obj.room_name || room}: <b>${room_obj.capacity} persons</b>`);
 			if (persons && persons > room_obj.capacity) {
 				frappe.msgprint({
 					title: __("Exceeds Room Capacity"),
 					message: __("<b>{0}</b> has a maximum capacity of <b>{1} persons</b>. You cannot book for {2} persons.", [room_obj.room_name || room, room_obj.capacity, persons]),
 					indicator: "red"
 				});
-				dialog.set_value("no_of_persons", room_obj.capacity);
+				dialog.set_value("custom_no_of_attendees", room_obj.capacity);
 			}
 		}
 	}

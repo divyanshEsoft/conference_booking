@@ -81,7 +81,8 @@ def execute(filters=None):
             "start_time",
             "end_time",
             "status",
-            "remarks"
+            "remarks",
+            "custom_no_of_attendees"
         ],
         order_by="start_time asc"
     )
