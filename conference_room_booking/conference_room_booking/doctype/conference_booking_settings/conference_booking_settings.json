@@ -1,0 +1,88 @@
+{
+ "actions": [],
+ "creation": "2026-07-31 12:40:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "enable_advance_booking_restriction",
+  "max_advance_booking_hours",
+  "allowed_roles_section",
+  "allowed_roles"
+ ],
+ "fields": [
+  {
+   "default": "1",
+   "fieldname": "enable_advance_booking_restriction",
+   "fieldtype": "Check",
+   "label": "Enable Advance Booking Restriction"
+  },
+  {
+   "default": "48",
+   "fieldname": "max_advance_booking_hours",
+   "fieldtype": "Int",
+   "label": "Max Advance Booking Hours"
+  },
+  {
+   "fieldname": "allowed_roles_section",
+   "fieldtype": "Section Break",
+   "label": "Bypass Roles (Allowed to Book Beyond Limit)"
+  },
+  {
+   "fieldname": "allowed_roles",
+   "fieldtype": "Table",
+   "label": "Allowed Roles",
+   "options": "Conference Booking Allowed Role"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-31 12:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "Conference Room Booking",
+ "name": "Conference Booking Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Administrator",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "HR Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

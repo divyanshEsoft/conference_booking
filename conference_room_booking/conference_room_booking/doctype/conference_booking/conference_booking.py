@@ -3,7 +3,7 @@
 
 import frappe
 from frappe.model.document import Document
-from frappe.utils import getdate, nowdate, get_time, get_datetime
+from frappe.utils import getdate, nowdate, get_time, get_datetime, now_datetime, cint
 
 
 class ConferenceBooking(Document):
@@ -15,8 +15,10 @@ class ConferenceBooking(Document):
         self.set_calendar_datetimes()
         self.validate_management_reserved_room()
         self.validate_booking_time()
+        self.validate_advance_booking_limit()
         self.validate_overlapping_booking()
         self.validate_capacity()
+
 
 
     def set_group_name(self):
@@ -122,6 +124,45 @@ class ConferenceBooking(Document):
                 
                 if end_time > get_time(room.booking_end_time):
                     frappe.throw(f"End Time cannot be after Room's closing time ({room.booking_end_time})")
+
+    def validate_advance_booking_limit(self):
+        if not self.booking_date:
+            return
+
+        try:
+            settings = frappe.get_single("Conference Booking Settings")
+            enabled = settings.enable_advance_booking_restriction if settings.enable_advance_booking_restriction is not None else 1
+            max_hours = cint(settings.max_advance_booking_hours) or 48
+            configured_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
+        except Exception:
+            enabled = 1
+            max_hours = 48
+            configured_roles = []
+
+        if not enabled:
+            return
+
+        allowed_roles = configured_roles if configured_roles else ["Administrator", "System Manager" , "HR", "HR Manager"]
+        user_roles = frappe.get_roles(frappe.session.user)
+
+        # Authorized roles can bypass advance booking limit
+        if any(role in user_roles for role in allowed_roles):
+            return
+
+        if self.start_time:
+            booking_start_datetime = get_datetime(f"{self.booking_date} {self.start_time}")
+        else:
+            booking_start_datetime = get_datetime(f"{self.booking_date} 00:00:00")
+
+        current_datetime = now_datetime()
+        time_diff_hours = (booking_start_datetime - current_datetime).total_seconds() / 3600.0
+
+        if time_diff_hours > max_hours:
+            frappe.throw(
+                f"You cannot book a conference room more than {max_hours} hours in advance. "
+                "Only authorized roles can book beyond this limit."
+            )
+
 
 
     def validate_capacity(self):

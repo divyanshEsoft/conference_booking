@@ -2,8 +2,10 @@
 // For license information, please see license.txt
 
 function cbr_can_book_past() {
-	// Allow HR Manager, System Manager, or Administrator to perform past bookings
-	// Users with only HR User (without HR Manager) will be restricted (return false)
+	let raw = frappe.query_report.data || [];
+	if (raw.length > 0 && raw[0].can_view_details !== undefined) {
+		return !!raw[0].can_view_details;
+	}
 	return frappe.user.has_role("HR Manager") ||
 		frappe.user.has_role("System Manager") ||
 		frappe.session.user === "Administrator";
@@ -255,6 +257,9 @@ function cbr_build_room_card(room, selected_date) {
 				? `${bk.start_time_12h} – ${bk.end_time_12h}`
 				: `${bk.start_time_str} – ${bk.end_time_str}`;
 			let group_text = bk.group_name ? ` &bull; ${bk.group_name}` : '';
+			let view_btn = room.can_view_details
+				? `<button class="btn btn-xs btn-default" onclick="frappe.set_route('Form', 'Conference Booking', '${bk.name}')">View Details</button>`
+				: '';
 
 			return `
 			<div class="cbr-booking-info-strip" style="margin-top: 6px;">
@@ -264,7 +269,7 @@ function cbr_build_room_card(room, selected_date) {
 					&bull; ${display_time} 
 					<span class="badge badge-light" style="margin-left: 6px;">${bk.meeting_type || 'Internal'}</span>
 				</div>
-				<button class="btn btn-xs btn-default" onclick="frappe.set_route('Form', 'Conference Booking', '${bk.name}')">View Details</button>
+				${view_btn}
 			</div>`;
 		}).join('');
 	} else {

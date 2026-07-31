@@ -96,7 +96,6 @@ def execute(filters=None):
         b["end_time_12h"] = format_12h(b.end_time)
         bookings_by_room.setdefault(b.conference_room, []).append(b)
 
-    # 3. Standard fallback columns
     columns = [
         {"fieldname": "room_name", "label": "Room Name", "fieldtype": "Data", "width": 160},
         {"fieldname": "capacity", "label": "Capacity", "fieldtype": "Int", "width": 90},
@@ -104,6 +103,19 @@ def execute(filters=None):
         {"fieldname": "availability_status", "label": "Status", "fieldtype": "Data", "width": 140},
         {"fieldname": "total_bookings", "label": "Total Bookings", "fieldtype": "Int", "width": 120}
     ]
+
+    # Check allowed roles for details view & advance management
+    try:
+        settings = frappe.get_single("Conference Booking Settings")
+        allowed_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
+    except Exception:
+        allowed_roles = []
+
+    user_roles = frappe.get_roles(frappe.session.user)
+    if allowed_roles:
+        can_view_details = any(role in user_roles for role in allowed_roles)
+    else:
+        can_view_details = any(role in user_roles for role in ["HR", "HR Manager", "Administrator", "System Manager"])
 
     report_data = []
 
@@ -125,7 +137,9 @@ def execute(filters=None):
             "booking_end_time": str(room.booking_end_time)[:5] if room.booking_end_time else "22:00",
             "availability_status": availability_status,
             "total_bookings": len(room_bookings),
+            "can_view_details": 1 if can_view_details else 0,
             "bookings": room_bookings
         })
 
     return columns, report_data
+
