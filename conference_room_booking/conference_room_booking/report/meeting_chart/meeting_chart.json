@@ -7,10 +7,10 @@
  "docstatus": 0,
  "doctype": "Report",
  "filters": [],
- "idx": 0,
+ "idx": 2,
  "is_standard": "Yes",
  "letter_head": null,
- "modified": "2026-04-09 13:04:31.749360",
+ "modified": "2026-07-31 11:57:19.672540",
  "modified_by": "Administrator",
  "module": "Conference Room Booking",
  "name": "Meeting Chart",
@@ -19,6 +19,16 @@
  "ref_doctype": "Conference Booking",
  "report_name": "Meeting Chart",
  "report_type": "Script Report",
- "roles": [],
+ "roles": [
+  {
+   "role": "Employee"
+  },
+  {
+   "role": "Employee Self Service"
+  },
+  {
+   "role": "Projects User"
+  }
+ ],
  "timeout": 0
 }
