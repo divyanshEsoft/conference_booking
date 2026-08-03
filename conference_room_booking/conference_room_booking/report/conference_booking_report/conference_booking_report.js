@@ -57,6 +57,10 @@ frappe.query_reports["Conference Booking Report"] = {
 	onload: function (report) {
 		report.report_settings.disable_cache = 1;
 
+		report.page.add_inner_button(__('View My Bookings'), function () {
+			cbr_view_my_bookings();
+		});
+
 		if (!document.getElementById("cbr-styles")) {
 			let style = document.createElement("style");
 			style.id = "cbr-styles";
@@ -75,6 +79,13 @@ frappe.query_reports["Conference Booking Report"] = {
 		cbr_render_view(raw);
 	}
 };
+
+function cbr_view_my_bookings() {
+	frappe.route_options = {
+		"owner": frappe.session.user
+	};
+	frappe.set_route("List", "Conference Booking");
+}
 
 /* ═══════════════════════════════════════════════════════════
    MAIN VIEW RENDERER
@@ -113,9 +124,14 @@ function cbr_render_view(rooms) {
 				<strong>Need a meeting room?</strong><br>
 				<span class="text-muted">Quickly book an available slot</span>
 			</div>
-			<button class="btn btn-primary cbr-btn-book" onclick="cbr_open_book_dialog()">
-				<i class="fa fa-plus"></i> Book a Slot
-			</button>
+			<div style="display: flex; gap: 10px;">
+				<button class="btn btn-primary cbr-btn-book" onclick="cbr_view_my_bookings()">
+					<i class="fa fa-list"></i> View My Bookings
+				</button>
+				<button class="btn btn-primary cbr-btn-book" onclick="cbr_open_book_dialog()">
+					<i class="fa fa-plus"></i> Book a Slot
+				</button>
+			</div>
 		</div>
 
 	</div>`;
