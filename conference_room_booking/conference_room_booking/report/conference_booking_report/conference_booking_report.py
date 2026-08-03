@@ -76,6 +76,7 @@ def execute(filters=None):
             "client_name",
             "meeting_type",
             "booked_by",
+            "owner",
             "projector_required",
             "full_day",
             "start_time",
@@ -87,6 +88,18 @@ def execute(filters=None):
         order_by="start_time asc"
     )
 
+    # Check allowed roles for details view & advance management
+    try:
+        settings = frappe.get_single("Conference Booking Settings")
+        allowed_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
+    except Exception:
+        allowed_roles = []
+
+    user_roles = frappe.get_roles(frappe.session.user)
+    can_view_all_details = any(role in user_roles for role in allowed_roles) if allowed_roles else False
+
+    user_fullname = frappe.db.get_value("User", frappe.session.user, "full_name") or ""
+
     # Group bookings by room (conference_room link field)
     bookings_by_room = {}
     for b in bookings:
@@ -94,6 +107,8 @@ def execute(filters=None):
         b["end_time_str"] = str(b.end_time)[:5] if b.end_time else "00:00"
         b["start_time_12h"] = format_12h(b.start_time)
         b["end_time_12h"] = format_12h(b.end_time)
+        is_my_booking = b.get("booked_by") in [frappe.session.user, user_fullname] or b.get("owner") == frappe.session.user
+        b["can_view_details"] = 1 if (can_view_all_details or is_my_booking) else 0
         bookings_by_room.setdefault(b.conference_room, []).append(b)
 
     columns = [
@@ -103,19 +118,6 @@ def execute(filters=None):
         {"fieldname": "availability_status", "label": "Status", "fieldtype": "Data", "width": 140},
         {"fieldname": "total_bookings", "label": "Total Bookings", "fieldtype": "Int", "width": 120}
     ]
-
-    # Check allowed roles for details view & advance management
-    try:
-        settings = frappe.get_single("Conference Booking Settings")
-        allowed_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
-    except Exception:
-        allowed_roles = []
-
-    user_roles = frappe.get_roles(frappe.session.user)
-    if allowed_roles:
-        can_view_details = any(role in user_roles for role in allowed_roles)
-    else:
-        can_view_details = any(role in user_roles for role in ["HR", "HR Manager", "Administrator", "System Manager"])
 
     report_data = []
 
@@ -137,7 +139,7 @@ def execute(filters=None):
             "booking_end_time": str(room.booking_end_time)[:5] if room.booking_end_time else "22:00",
             "availability_status": availability_status,
             "total_bookings": len(room_bookings),
-            "can_view_details": 1 if can_view_details else 0,
+            "can_view_details": 1 if can_view_all_details else 0,
             "bookings": room_bookings
         })
 

@@ -85,7 +85,7 @@ frappe.ui.form.on("Conference Booking", {
 		}
 
 		if (frm.is_new() && !frm.doc.group_name) {
-			frappe.db.get_value("Employee", {"user_id": frappe.session.user}, ["employee_name", "department"])
+			frappe.db.get_value("Employee", { "user_id": frappe.session.user }, ["employee_name", "department"])
 				.then(r => {
 					if (r && r.message) {
 						let name = r.message.employee_name;
@@ -132,17 +132,21 @@ frappe.ui.form.on("Conference Booking", {
 
 		// Real-time capacity validation on input
 		if (frm.fields_dict.custom_no_of_attendees && frm.fields_dict.custom_no_of_attendees.$input) {
-			frm.fields_dict.custom_no_of_attendees.$input.off("input.capacity").on("input.capacity", function() {
+			frm.fields_dict.custom_no_of_attendees.$input.off("input.capacity").on("input.capacity", function () {
 				validate_capacity_realtime(frm);
 			});
 		}
 
-		// Restrict Edit Access
-		if (!frm.is_new() && frm.doc.booked_by && frm.doc.booked_by !== frappe.session.user) {
-			if (frappe.session.user !== "Administrator") {
-				frm.disable_form();
-				frm.set_intro(__("You can only view this booking because it was created by someone else."), "blue");
-			}
+		// Restrict Edit Access (Allow booker or users with write permission to edit)
+		let is_owner = (frm.doc.booked_by === frappe.session.user ||
+			frm.doc.owner === frappe.session.user ||
+			(frappe.session.user_fullname && frm.doc.booked_by === frappe.session.user_fullname));
+
+		let has_write_perm = !!(frm.perm && frm.perm[0] && frm.perm[0].write);
+
+		if (!frm.is_new() && !is_owner && !has_write_perm) {
+			frm.disable_form();
+			frm.set_intro(__("You can only view this booking because it was created by someone else."), "blue");
 		}
 	},
 
@@ -189,7 +193,7 @@ frappe.ui.form.on("Conference Booking", {
 	full_day(frm) {
 		refresh_room_selection(frm);
 	},
-	
+
 	conference_room(frm) {
 		validate_room_hours(frm);
 		if (frm.doc.conference_room) {

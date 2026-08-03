@@ -8,6 +8,26 @@ from frappe.utils import getdate, nowdate, get_time, get_datetime, now_datetime,
 
 class ConferenceBooking(Document):
 
+    def has_permission(self, ptype="read", user=None):
+        if not user:
+            user = frappe.session.user
+
+        try:
+            settings = frappe.get_single("Conference Booking Settings")
+            allowed_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
+        except Exception:
+            allowed_roles = []
+
+        user_roles = frappe.get_roles(user)
+        if allowed_roles and any(role in user_roles for role in allowed_roles):
+            return True
+
+        user_fullname = frappe.db.get_value("User", user, "full_name") or ""
+        if self.booked_by in [user, user_fullname] or self.owner == user:
+            return True
+
+        return False
+
     def validate(self):
 
         self.set_defaults()

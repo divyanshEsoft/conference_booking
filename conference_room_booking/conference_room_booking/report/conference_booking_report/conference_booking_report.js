@@ -257,7 +257,7 @@ function cbr_build_room_card(room, selected_date) {
 				? `${bk.start_time_12h} – ${bk.end_time_12h}`
 				: `${bk.start_time_str} – ${bk.end_time_str}`;
 			let group_text = bk.group_name ? ` &bull; ${bk.group_name}` : '';
-			let view_btn = room.can_view_details
+			let view_btn = (room.can_view_details || bk.can_view_details || bk.booked_by === frappe.session.user)
 				? `<button class="btn btn-xs btn-default" onclick="frappe.set_route('Form', 'Conference Booking', '${bk.name}')">View Details</button>`
 				: '';
 
@@ -483,7 +483,7 @@ function cbr_open_book_dialog(room_id, start_time) {
 
 			data.doctype = "Conference Booking";
 			data.status = "Reserved";
-			data.booked_by = frappe.session.user_fullname || frappe.session.user;
+			data.booked_by = frappe.session.user;
 
 			frappe.db.insert(data).then(doc => {
 				frappe.show_alert({ message: __("Booking confirmed successfully!"), indicator: "green" });
