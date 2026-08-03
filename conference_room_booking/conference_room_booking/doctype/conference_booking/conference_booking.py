@@ -18,6 +18,7 @@ class ConferenceBooking(Document):
         self.validate_advance_booking_limit()
         self.validate_overlapping_booking()
         self.validate_capacity()
+        self.validate_ownership()
 
 
 
@@ -175,6 +176,25 @@ class ConferenceBooking(Document):
                 f"Number of attendees ({self.custom_no_of_attendees}) cannot exceed "
                 f"the selected conference room's capacity ({room_capacity})."
             )
+
+    def validate_ownership(self):
+        # Allow new documents to be created without this check
+        if self.is_new():
+            return
+            
+        if not getattr(self, "booked_by", None):
+            return
+
+        original_doc = self.get_doc_before_save()
+        original_booker = original_doc.booked_by if original_doc else self.booked_by
+        current_user = frappe.session.user
+        
+        # Administrator can override
+        if current_user == "Administrator":
+            return
+            
+        if original_booker != current_user:
+            frappe.throw("You can only modify bookings that you have created.", frappe.PermissionError)
 
 
 # ----------------------------------------------------

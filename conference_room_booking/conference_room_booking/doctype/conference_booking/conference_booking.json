@@ -42,8 +42,8 @@
   },
   {
    "fieldname": "meeting_title",
-   "hidden": 1,
    "fieldtype": "Data",
+   "hidden": 1,
    "label": "Meeting Title",
    "read_only_depends_on": "eval: doc.status == \"Completed\" || doc.status == \"Cancelled\""
   },
@@ -143,7 +143,7 @@
  "index_web_pages_for_search": 1,
  "is_calendar_and_gantt": 1,
  "links": [],
- "modified": "2026-04-23 13:09:07.517678",
+ "modified": "2026-07-31 12:05:08.941542",
  "modified_by": "Administrator",
  "module": "Conference Room Booking",
  "name": "Conference Booking",
@@ -164,23 +164,27 @@
   },
   {
    "create": 1,
+   "delete": 1,
    "email": 1,
    "export": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Sales User",
+   "role": "Employee",
    "share": 1,
    "write": 1
   },
   {
    "create": 1,
+   "delete": 1,
    "email": 1,
    "export": 1,
+   "if_owner": 1,
    "print": 1,
    "read": 1,
    "report": 1,
-   "role": "Sales Manager",
+   "role": "Employee Self Service",
    "share": 1,
    "write": 1
   }

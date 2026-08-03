@@ -136,6 +136,14 @@ frappe.ui.form.on("Conference Booking", {
 				validate_capacity_realtime(frm);
 			});
 		}
+
+		// Restrict Edit Access
+		if (!frm.is_new() && frm.doc.booked_by && frm.doc.booked_by !== frappe.session.user) {
+			if (frappe.session.user !== "Administrator") {
+				frm.disable_form();
+				frm.set_intro(__("You can only view this booking because it was created by someone else."), "blue");
+			}
+		}
 	},
 
 	booking_date(frm) {
