@@ -137,16 +137,12 @@ frappe.ui.form.on("Conference Booking", {
 			});
 		}
 
-		// Restrict Edit Access (Allow booker or users with write permission to edit)
-		let is_owner = (frm.doc.booked_by === frappe.session.user ||
-			frm.doc.owner === frappe.session.user ||
-			(frappe.session.user_fullname && frm.doc.booked_by === frappe.session.user_fullname));
-
-		let has_write_perm = !!(frm.perm && frm.perm[0] && frm.perm[0].write);
-
-		if (!frm.is_new() && !is_owner && !has_write_perm) {
-			frm.disable_form();
-			frm.set_intro(__("You can only view this booking because it was created by someone else."), "blue");
+		// Restrict Edit Access
+		if (!frm.is_new() && frm.doc.booked_by && frm.doc.booked_by !== frappe.session.user) {
+			if (frappe.session.user !== "Administrator") {
+				frm.disable_form();
+				frm.set_intro(__("You can only view this booking because it was created by someone else."), "blue");
+			}
 		}
 	},
 

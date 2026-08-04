@@ -12,6 +12,9 @@ class ConferenceBooking(Document):
         if not user:
             user = frappe.session.user
 
+        if ptype == "read":
+            return True
+
         try:
             settings = frappe.get_single("Conference Booking Settings")
             allowed_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
