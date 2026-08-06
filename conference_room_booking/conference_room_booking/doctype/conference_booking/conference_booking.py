@@ -8,6 +8,16 @@ from frappe.utils import getdate, nowdate, get_time, get_datetime, now_datetime,
 
 class ConferenceBooking(Document):
 
+    def get_allowed_roles(self, default_roles=None):
+        try:
+            settings = frappe.get_single("Conference Booking Settings")
+            roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
+            if roles:
+                return roles
+        except Exception:
+            pass
+        return default_roles if default_roles is not None else ["Administrator", "System Manager", "HR Manager"]
+
     def has_permission(self, ptype="read", user=None):
         if not user:
             user = frappe.session.user
@@ -15,11 +25,7 @@ class ConferenceBooking(Document):
         if ptype == "read":
             return True
 
-        try:
-            settings = frappe.get_single("Conference Booking Settings")
-            allowed_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
-        except Exception:
-            allowed_roles = []
+        allowed_roles = self.get_allowed_roles([])
 
         user_roles = frappe.get_roles(user)
         if allowed_roles and any(role in user_roles for role in allowed_roles):
@@ -103,13 +109,13 @@ class ConferenceBooking(Document):
         if not room.reserved_for_management:
             return
 
-        allowed_roles = ["HR Manager", "Administrator", "System Manager"]
+        allowed_roles = self.get_allowed_roles(["HR Manager", "Administrator", "System Manager"])
         user_roles = frappe.get_roles(frappe.session.user)
 
         if not any(role in user_roles for role in allowed_roles):
             frappe.throw(
                 "This conference room is reserved for office/management use only. "
-                "Only HR Manager, Administrator, or System Manager can book it."
+                "Only authorized roles can book it."
             )
 
 # ----------------------------------------------------
@@ -157,16 +163,14 @@ class ConferenceBooking(Document):
             settings = frappe.get_single("Conference Booking Settings")
             enabled = settings.enable_advance_booking_restriction if settings.enable_advance_booking_restriction is not None else 1
             max_hours = cint(settings.max_advance_booking_hours) or 48
-            configured_roles = [d.role for d in settings.allowed_roles if d.role] if settings.allowed_roles else []
         except Exception:
             enabled = 1
             max_hours = 48
-            configured_roles = []
 
         if not enabled:
             return
 
-        allowed_roles = configured_roles if configured_roles else ["Administrator", "System Manager" , "HR", "HR Manager"]
+        allowed_roles = self.get_allowed_roles(["Administrator", "System Manager", "HR", "HR Manager"])
         user_roles = frappe.get_roles(frappe.session.user)
 
         # Authorized roles can bypass advance booking limit
@@ -184,7 +188,7 @@ class ConferenceBooking(Document):
         if time_diff_hours > max_hours:
             frappe.throw(
                 f"You cannot book a conference room more than {max_hours} hours in advance. "
-                "Only authorized roles can book beyond this limit."
+                "Only authorized users can book beyond this limit."
             )
 
 
@@ -212,8 +216,11 @@ class ConferenceBooking(Document):
         original_booker = original_doc.booked_by if original_doc else self.booked_by
         current_user = frappe.session.user
         
-        # Administrator can override
-        if current_user == "Administrator":
+        allowed_roles = self.get_allowed_roles(["Administrator", "System Manager", "HR Manager"])
+        user_roles = frappe.get_roles(current_user)
+
+        # Authorized roles or Administrator can override
+        if current_user == "Administrator" or any(role in user_roles for role in allowed_roles):
             return
             
         if original_booker != current_user:
@@ -230,8 +237,8 @@ class ConferenceBooking(Document):
         if not self.conference_room or not self.booking_date:
             return
         
-        # Skip cancelled & draft bookings
-        if self.status in ["Cancelled", "Draft"]:
+        # Skip cancelled bookings
+        if self.status == "Cancelled":
             return
         
 
@@ -278,51 +285,129 @@ class ConferenceBooking(Document):
             return
         
 
-        # ------------------------------------------------
-        # PARTIAL TIME OVERLAP CHECK (EXISTING + BUFFER)
-        # ------------------------------------------------
+        # ---------------------------------------------------------------------
+        # [MODIFIED / COMMENTED OUT] Old generic overlap check
+        # Retained as commented code per user instructions.
+        # ---------------------------------------------------------------------
+        # room = frappe.get_doc("Conference Room", self.conference_room)
+        # buffer_minutes = room.buffer_minutes or 0
+        #
+        # def time_to_minutes(t):
+        #     t = get_time(t)
+        #     return t.hour * 60 + t.minute
+        # 
+        # start_minutes = time_to_minutes(self.start_time) - buffer_minutes
+        # end_minutes = time_to_minutes(self.end_time) + buffer_minutes
+        #
+        # overlapping_booking = frappe.db.sql(
+        #     """
+        #     SELECT name
+        #     FROM `tabConference Booking`
+        #     WHERE
+        #         conference_room = %s
+        #         AND booking_date = %s
+        #         AND status IN ('Confirmed', 'Reserved')
+        #         AND name != %s
+        #         AND (
+        #             (TIME_TO_SEC(start_time) / 60) < %s
+        #             AND (TIME_TO_SEC(end_time) / 60) > %s
+        #         )
+        #     """,
+        #     (
+        #         self.conference_room,
+        #         self.booking_date,
+        #         self.name,
+        #         end_minutes,
+        #         start_minutes,
+        #     ),
+        # )
+        #
+        # if overlapping_booking:
+        #     frappe.throw(
+        #         "Room already booked or buffer time conflict exists for the selected slot."
+        #     )
 
+        # ---------------------------------------------------------------------
+        # [ADDED] User-Friendly Overlap & Buffer Time Conflict Validation
+        # Separates Direct Booking Overlap from Buffer Time Conflict with detailed messages.
+        # ---------------------------------------------------------------------
         room = frappe.get_doc("Conference Room", self.conference_room)
         buffer_minutes = room.buffer_minutes or 0
 
-
+        # Helper to convert time object / string to minutes from midnight
         def time_to_minutes(t):
             t = get_time(t)
             return t.hour * 60 + t.minute
-        
-        start_minutes = time_to_minutes(self.start_time) - buffer_minutes
-        end_minutes = time_to_minutes(self.end_time) + buffer_minutes
 
+        # Helper to format minutes into a friendly 12-hour string (e.g. 10:15 AM)
+        def minutes_to_12h(mins):
+            hours = (mins // 60) % 24
+            m = mins % 60
+            period = "AM" if hours < 12 else "PM"
+            h12 = hours % 12
+            if h12 == 0:
+                h12 = 12
+            return f"{h12:02d}:{m:02d} {period}"
 
+        req_start_min = time_to_minutes(self.start_time)
+        req_end_min = time_to_minutes(self.end_time)
 
-
-        overlapping_booking = frappe.db.sql(
+        # Fetch existing active bookings for this room & date
+        existing_bookings = frappe.db.sql(
             """
-            SELECT name
+            SELECT name, start_time, end_time
             FROM `tabConference Booking`
             WHERE
                 conference_room = %s
                 AND booking_date = %s
                 AND status IN ('Confirmed', 'Reserved')
                 AND name != %s
-                AND (
-                    (TIME_TO_SEC(start_time) / 60) < %s
-                    AND (TIME_TO_SEC(end_time) / 60) > %s
-                )
             """,
-            (
-                self.conference_room,
-                self.booking_date,
-                self.name,
-                end_minutes,
-                start_minutes,
-            ),
+            (self.conference_room, self.booking_date, self.name),
+            as_dict=True
         )
 
-        if overlapping_booking:
-            frappe.throw(
-                "Room already booked or buffer time conflict exists for the selected slot."
-            )
+        for b in existing_bookings:
+            exist_start_min = time_to_minutes(b.start_time)
+            exist_end_min = time_to_minutes(b.end_time)
+
+            # 1. Direct Time Overlap Check (Requested slot falls directly inside an existing meeting slot)
+            if req_start_min < exist_end_min and req_end_min > exist_start_min:
+                frappe.throw(
+                    f"<b>Room Already Booked</b><br>"
+                    f"The selected room is already booked from <b>{minutes_to_12h(exist_start_min)}</b> to "
+                    f"<b>{minutes_to_12h(exist_end_min)}</b> (Booking ID: {b.name}). Please select another time slot."
+                )
+
+            # 2. Buffer Time Conflict Check (Requested slot falls inside the setup/cleanup buffer window)
+            if buffer_minutes > 0:
+                # Case A: Requested booking starts too soon after an existing booking ends
+                if exist_end_min <= req_start_min < (exist_end_min + buffer_minutes):
+                    available_start = exist_end_min + buffer_minutes
+                    frappe.throw(
+                        f"<b>Buffer Time Conflict</b><br>"
+                        f"This room requires a <b>{buffer_minutes}-minute buffer</b> after the booking "
+                        f"({minutes_to_12h(exist_start_min)} - {minutes_to_12h(exist_end_min)}).<br>"
+                        f"The earliest available start time for this room is <b>{minutes_to_12h(available_start)}</b>."
+                    )
+
+                # Case B: Requested booking ends too late before an upcoming booking starts
+                if (exist_start_min - buffer_minutes) < req_end_min <= exist_start_min:
+                    max_end = exist_start_min - buffer_minutes
+                    frappe.throw(
+                        f"<b>Buffer Time Conflict</b><br>"
+                        f"This room requires a <b>{buffer_minutes}-minute buffer</b> before the upcoming booking "
+                        f"({minutes_to_12h(exist_start_min)} - {minutes_to_12h(exist_end_min)}).<br>"
+                        f"Your booking must end by <b>{minutes_to_12h(max_end)}</b>."
+                    )
+
+                # Case C: Fallback for any other buffer boundary overlap
+                if (req_start_min < exist_end_min + buffer_minutes) and (req_end_min + buffer_minutes > exist_start_min):
+                    frappe.throw(
+                        f"<b>Buffer Time Conflict</b><br>"
+                        f"The selected time slot conflicts with the <b>{buffer_minutes}-minute buffer</b> around booking "
+                        f"({minutes_to_12h(exist_start_min)} - {minutes_to_12h(exist_end_min)})."
+                    )
 
 
 
@@ -441,35 +526,43 @@ def get_available_rooms(doctype, txt, searchfield, start, page_len, filters):
     if not booking_date:
         return []
 
-    # 1. Identify occupied rooms for the given slot
+    def time_to_minutes(t):
+        if not t:
+            return 0
+        t = get_time(t)
+        return t.hour * 60 + t.minute
+
+    req_start_min = time_to_minutes(start_time) if start_time else 0
+    req_end_min = time_to_minutes(end_time) if end_time else 0
+    has_time_slot = 1 if (start_time and end_time) else 0
+
+    # 1. Identify occupied rooms for the given slot (accounting for buffer time)
     occupied_rooms_query = """
-        SELECT DISTINCT conference_room
-        FROM `tabConference Booking`
+        SELECT DISTINCT b.conference_room
+        FROM `tabConference Booking` b
+        INNER JOIN `tabConference Room` r ON r.name = b.conference_room
         WHERE
-            booking_date = %s
-            AND status IN ('Confirmed', 'Reserved','Completed')
-            AND name != %s
+            b.booking_date = %s
+            AND b.status IN ('Confirmed', 'Reserved')
+            AND b.name != %s
             AND (
-                full_day = 1
+                b.full_day = 1
                 OR %s = 1
                 OR (
-                    start_time < %s
-                    AND end_time > %s
+                    %s = 1
+                    AND (TIME_TO_SEC(b.start_time) / 60) < (%s + IFNULL(r.buffer_minutes, 0))
+                    AND (TIME_TO_SEC(b.end_time) / 60) > (%s - IFNULL(r.buffer_minutes, 0))
                 )
             )
     """
-
-    # If full_day is current selection, we check against ANY booking
-    # Otherwise we check against full_day bookings OR overlapping time bookings
-    check_start = end_time if not full_day else "23:59:59"
-    check_end = start_time if not full_day else "00:00:00"
 
     occupied_rooms = frappe.db.sql(occupied_rooms_query, (
         booking_date,
         current_booking or "",
         full_day,
-        check_start,
-        check_end
+        has_time_slot,
+        req_end_min,
+        req_start_min
     ), as_dict=True)
 
     occupied_room_names = [d.conference_room for d in occupied_rooms]
