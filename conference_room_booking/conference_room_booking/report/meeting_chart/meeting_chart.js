@@ -12,6 +12,9 @@ frappe.query_reports["Meeting Chart"] = {
 		}
 	],
 	"onload": function(report) {
+		// Force ignore prepared_report so Meeting Chart always runs live.
+		report.ignore_prepared_report = true;
+
 		report.page.wrapper.find('.frappe-datatable').hide();
 	}
 };

@@ -55,6 +55,9 @@ frappe.query_reports["Conference Booking Report"] = {
 	},
 
 	onload: function (report) {
+		// Force ignore prepared_report so Conference Booking Report always runs live.
+		report.ignore_prepared_report = true;
+
 		report.report_settings.disable_cache = 1;
 
 		report.page.add_inner_button(__('View My Bookings'), function () {
